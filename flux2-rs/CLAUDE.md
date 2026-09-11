@@ -57,6 +57,9 @@ cargo test --no-default-features matting::tests::einpassen   # single test / fil
 # Full build — pulls in diffusion-rs → stable-diffusion.cpp (long C++/CMake build)
 cargo build --release
 
+# Second model set (host only): non-distilled 9B, gated repo, needs HF_TOKEN
+scripts/generate-macos.sh --preset klein-base-9b --wtype q8_0 "prompt"
+
 # Generate an image — REFERENCE ONLY, do not run (see rule above); the user runs this
 # (all parameters are env vars, there are no CLI flags)
 SIZE=512 STEPS=4 SEED=42 OUT=/workspace/out.png ./target/release/flux2-rs "prompt"
@@ -106,6 +109,16 @@ pure, testable half.
 - **`scripts/umgebung.sh`** — sourced by both scripts (not executable on its own): tool
   check, `LIBCLANG_PATH`/`CMAKE_GENERATOR`, thread count, and `bauen()` with the bindgen
   recovery. Changes to the toolchain search belong here, not in a caller.
+- **Two model sets, `--preset`.** `klein-4b` (default, distilled GGUF, cfg 1.0 / 4 steps)
+  and `klein-base-9b` (non-distilled fp8 safetensors, cfg 4.0 / 20 steps, gated repo).
+  Two traps live here: sd.cpp expands fp8 to f16 while loading
+  (`model_loader.cpp: f8_e4m3_to_f16_vec`), so 9.5 GB on disk become ~19 GB in memory —
+  the preset therefore defaults to `WTYPE=q8_0`, which quantizes at load time. And the
+  text encoder is chosen by sd.cpp from the block count, not by us: it logs
+  `Version: Flux.2 klein` (Qwen3) or `Version: Flux.2` (Mistral Small 3.2). Only the first
+  run tells you which one a given checkpoint needs.
+- **`HF_TOKEN`** is sent as a bearer token on every download; gated repos return an HTML
+  error page instead of weights without it, and `fetch` says so explicitly on failure.
 - **`charaktere.txt` + `scripts/batch.sh`** — the whole asset library in one run. The list is
   `slug | Name | German description | English prompt`; only the prompt reaches the model.
   Resume is file-based: an existing `<out-dir>/<slug>.png` counts as done, so re-running

@@ -47,7 +47,11 @@ vae_tiling=0          # 32 GB brauchen kein gekacheltes VAE-Decoding
 # an, um im Container Speicher zu sparen — auf einem 32-GB-Mac ist das unnötig
 # und ein möglicher Grund für kaputte (graue) Bilder.
 flash_attention=0
-cfg_scale=1.0         # klein ist distilliert: kein Classifier-Free Guidance
+preset=klein-4b       # Modellsatz, siehe unten
+wtype=""             # Gewichte beim Laden umwandeln, z. B. q8_0
+cfg_scale=1.0        # wird vom Modellsatz überschrieben, wenn nicht gesetzt
+cfg_gesetzt=""
+steps_gesetzt=""
 guidance=3.5          # destillierte Guidance, sd.cpps Default
 log_level=1           # 0 = still, 1 = sd.cpp-Log, 2 = zusätzlich DEBUG
 # mmap bindet die Gewichte an einen CPU-Buffer
@@ -136,7 +140,16 @@ Qualität und Diagnose:
       --debug           zusätzlich DEBUG-Zeilen zeigen
 
 Modelle und Build:
-      --quant Q         GGUF-Quantisierung, z. B. Q4_K_M, Q5_K_M, Q8_0 (Default: Q5_K_M)
+      --preset NAME     Modellsatz (Default: klein-4b)
+                        klein-4b      distilliert, GGUF, cfg 1.0 und 4 Steps
+                        klein-base-9b nicht distilliert, fp8-Safetensors, 9,5 GB,
+                                      cfg 4.0 und 20 Steps. Repo ist gated:
+                                      Lizenz bestätigen und HF_TOKEN setzen.
+      --wtype TYP       Gewichte beim Laden umwandeln: f32, f16, q8_0, q6_k,
+                        q5_k, q4_k, q3_k. sd.cpp rechnet fp8 beim Einlesen auf
+                        f16 hoch — aus 9,5 GB werden sonst rund 19 GB im
+                        Speicher. Bei klein-base-9b ist q8_0 voreingestellt.
+      --quant Q         GGUF-Quantisierung für klein-4b, z. B. Q4_K_M, Q8_0 (Default: Q5_K_M)
       --models DIR      Modellverzeichnis (Default: <repo>/models)
       --threads N       Threads (Default: Performance-Kerne des Rechners)
       --vae-tiling      VAE gekachelt dekodieren (spart Speicher, kostet Zeit)
@@ -174,7 +187,7 @@ while [ $# -gt 0 ]; do
         -s|--size)       require_number "--size" "$2";   size="$2"; shift 2 ;;
         -W|--width)      require_number "--width" "$2";  width="$2"; shift 2 ;;
         -H|--height)     require_number "--height" "$2"; height="$2"; shift 2 ;;
-        --steps)         require_number "--steps" "$2";  steps="$2"; shift 2 ;;
+        --steps)         require_number "--steps" "$2";  steps="$2"; steps_gesetzt=1; shift 2 ;;
         --seed)          require_number "--seed" "$2";   seed="$2"; shift 2 ;;
         --seeds)         require_number "--seeds" "$2";  seeds="$2"; shift 2 ;;
         --out-w)         require_number "--out-w" "$2";  out_w="$2"; shift 2 ;;
@@ -207,7 +220,9 @@ while [ $# -gt 0 ]; do
         --key-loch)      require_float "--key-loch" "$2";   key_loch="$2"; shift 2 ;;
         --key-loch-min)  require_number "--key-loch-min" "$2"; key_loch_min="$2"; shift 2 ;;
         --no-despill)    despill=0; shift ;;
-        --cfg)           require_float "--cfg" "$2"; cfg_scale="$2"; shift 2 ;;
+        --cfg)           require_float "--cfg" "$2"; cfg_scale="$2"; cfg_gesetzt=1; shift 2 ;;
+        --preset)        preset="$2"; shift 2 ;;
+        --wtype)         wtype="$2"; shift 2 ;;
         --guidance)      require_float "--guidance" "$2"; guidance="$2"; shift 2 ;;
         --quiet)         log_level=0; shift ;;
         --debug)         log_level=2; shift ;;
@@ -260,19 +275,60 @@ fetch() {
     fi
     echo "lade $label ..."
     mkdir -p "$(dirname "$dest")"
+    # Manche Repos sind gated (FLUX.2-klein-base etwa): dort braucht es einen
+    # Zugriffstoken, sonst kommt eine HTML-Fehlerseite statt der Gewichte.
+    if [ -n "${HF_TOKEN:-}" ]; then
+        set -- -H "Authorization: Bearer $HF_TOKEN"
+    else
+        set --
+    fi
     # -C - setzt abgebrochene Downloads fort, .part verhindert halbe Dateien.
-    curl -fL --retry 3 --retry-delay 2 -C - -o "$dest.part" "$url"
+    if ! curl -fL --retry 3 --retry-delay 2 -C - ${1+"$@"} -o "$dest.part" "$url"; then
+        rm -f "$dest.part"
+        echo >&2
+        echo "Download fehlgeschlagen: $label" >&2
+        case "$url" in *black-forest-labs*)
+            echo "Dieses Repo ist gated. Lizenz auf huggingface.co bestätigen," >&2
+            echo "dann ein Token anlegen und HF_TOKEN=hf_... setzen." >&2 ;;
+        esac
+        return 1
+    fi
     mv "$dest.part" "$dest"
 }
 
 hf="https://huggingface.co"
-dit="$models_dir/diffusion/flux-2-klein-4b-$quant.gguf"
+# --- Modellsatz --------------------------------------------------------------
+# klein-4b:      distilliert, GGUF, cfg 1.0 und wenige Steps. Der Normalfall.
+# klein-base-9b: nicht distilliert, eine fp8-Safetensors-Datei von 9,5 GB.
+#                Braucht cfg ~4.0 und ~20 Steps, sonst kommt Matsch heraus.
+#                sd.cpp rechnet fp8 beim Laden auf f16 hoch, deshalb ist hier
+#                WTYPE=q8_0 voreingestellt — ohne das sind es rund 19 GB.
+case "$preset" in
+    klein-4b)
+        dit="$models_dir/diffusion/flux-2-klein-4b-$quant.gguf"
+        dit_url="$hf/unsloth/FLUX.2-klein-4B-GGUF/resolve/main/flux-2-klein-4b-$quant.gguf"
+        dit_label="Diffusion-Transformer klein 4B ($quant)"
+        [ -n "$steps_gesetzt" ] || steps=4
+        [ -n "$cfg_gesetzt" ]   || cfg_scale=1.0
+        ;;
+    klein-base-9b)
+        dit="$models_dir/diffusion/flux-2-klein-base-9b-fp8.safetensors"
+        dit_url="$hf/black-forest-labs/FLUX.2-klein-base-9b-fp8/resolve/main/flux-2-klein-base-9b-fp8.safetensors"
+        dit_label="Diffusion-Transformer klein-base 9B (fp8, 9,5 GB)"
+        [ -n "$steps_gesetzt" ] || steps=20
+        [ -n "$cfg_gesetzt" ]   || cfg_scale=4.0
+        [ -n "$wtype" ]         || wtype=q8_0
+        ;;
+    *)
+        die "Unbekannter Modellsatz: '$preset'. Gültig: klein-4b, klein-base-9b"
+        ;;
+esac
+
 llm="$models_dir/text_encoder/Qwen3-4B-$quant.gguf"
 vae="$models_dir/vae/flux2-vae.safetensors"
 u2netp="$models_dir/matting/u2netp.onnx"
 
-fetch "$hf/unsloth/FLUX.2-klein-4B-GGUF/resolve/main/flux-2-klein-4b-$quant.gguf" \
-      "$dit" "Diffusion-Transformer ($quant)"
+fetch "$dit_url" "$dit" "$dit_label"
 fetch "$hf/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-$quant.gguf" \
       "$llm" "Text-Encoder Qwen3-4B ($quant)"
 fetch "$hf/unsloth/FLUX.2-VAE/resolve/main/split_files/vae/flux2-vae.safetensors" \
@@ -321,7 +377,7 @@ erzeuge() {
     WIDTH="$width" HEIGHT="$height" STEPS="$steps" SEED="$lauf_seed" THREADS="$threads" \
     REF="$ref_list" INIT="$init" STRENGTH="$strength" \
     VAE_TILING="$vae_tiling" FLASH_ATTENTION="$flash_attention" \
-    CFG="$cfg_scale" GUIDANCE="$guidance" LOG="$log_level" MMAP="$mmap" \
+    CFG="$cfg_scale" GUIDANCE="$guidance" LOG="$log_level" MMAP="$mmap" WTYPE="$wtype" \
     REF_BG="$ref_bg" \
     OUT="$roh" \
         "$bin_gen" "$prompt" || return 1

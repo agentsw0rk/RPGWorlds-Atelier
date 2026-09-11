@@ -6,10 +6,10 @@
 //!   * Text-Encoder: Qwen3-4B (GGUF) — FLUX.2 nutzt ein LLM statt CLIP/T5
 //!   * VAE zum Dekodieren der Latents
 use anyhow::{Context, Result};
-use diffusion_rs::api::{gen_img, ConfigBuilder, ModelConfigBuilder, SampleMethod};
+use diffusion_rs::api::{gen_img, ConfigBuilder, ModelConfigBuilder, SampleMethod, WeightType};
 use diffusion_rs_sys::{sd_log_level_t, sd_set_log_callback};
 use flux2_rs::matting::auf_hintergrund;
-use flux2_rs::params::{check_multiple_of_16, env_flag, hex_farbe, ref_image_paths};
+use flux2_rs::params::{check_multiple_of_16, env_flag, gewichts_typ, hex_farbe, ref_image_paths};
 use std::ffi::{c_char, c_void, CStr};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -73,7 +73,8 @@ fn main() -> Result<()> {
         println!("img2img-Vorlage: {init} (strength {strength})");
     }
 
-    let mut model_config = ModelConfigBuilder::default()
+    let mut model_config_builder = ModelConfigBuilder::default();
+    model_config_builder
         .diffusion_model(PathBuf::from(std::env::var("DIT").unwrap_or_else(|_| {
             format!("{models}/diffusion/flux-2-klein-4b-Q3_K_M.gguf")
         })))
@@ -91,7 +92,31 @@ fn main() -> Result<()> {
         .diffusion_flash_attention(env_flag("FLASH_ATTENTION", true))
         .flash_attention(env_flag("FLASH_ATTENTION", true))
         .vae_tiling(env_flag("VAE_TILING", true))
-        .n_threads(threads)
+        .n_threads(threads);
+
+    // WTYPE wandelt die Gewichte beim Laden um. Nötig für fp8-Modelle: sd.cpp
+    // rechnet fp8 beim Einlesen auf f16 hoch (model_loader.cpp:
+    // f8_e4m3_to_f16_vec), aus 9,5 GB auf der Platte werden also rund 19 GB im
+    // Speicher. Mit q8_0 bleibt es bei etwa der Dateigröße.
+    if let Ok(roh) = std::env::var("WTYPE") {
+        if !roh.trim().is_empty() {
+            let name = gewichts_typ(&roh)?;
+            let typ = match name.as_str() {
+                "f32" => WeightType::SD_TYPE_F32,
+                "f16" => WeightType::SD_TYPE_F16,
+                "q8_0" => WeightType::SD_TYPE_Q8_0,
+                "q6_k" => WeightType::SD_TYPE_Q6_K,
+                "q5_k" => WeightType::SD_TYPE_Q5_K,
+                "q4_k" => WeightType::SD_TYPE_Q4_K,
+                "q3_k" => WeightType::SD_TYPE_Q3_K,
+                _ => unreachable!("gewichts_typ hat den Wert bereits geprüft"),
+            };
+            println!("Gewichte werden beim Laden nach {name} umgewandelt.");
+            model_config_builder.weight_type(typ);
+        }
+    }
+
+    let mut model_config = model_config_builder
         .build()
         .map_err(|e| anyhow::anyhow!("ModelConfig: {e}"))?;
 

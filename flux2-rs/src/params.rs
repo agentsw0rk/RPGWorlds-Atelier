@@ -66,6 +66,27 @@ pub fn hex_farbe(raw: &str) -> Result<[u8; 3]> {
     Ok([byte(0), byte(2), byte(4)])
 }
 
+/// Gültige Werte für die Gewichtsumwandlung beim Laden.
+///
+/// Die Liste ist bewusst kurz: das sind die Typen, die für ein Diffusionsmodell
+/// sinnvoll sind. `ggml` kennt mehr, aber ein Tippfehler soll auffallen.
+pub const GEWICHTSTYPEN: [&str; 7] = ["f32", "f16", "q8_0", "q6_k", "q5_k", "q4_k", "q3_k"];
+
+/// Prüft und normalisiert einen Gewichtstyp.
+///
+/// Ein unbekannter Wert ist ein **Fehler** und kein stilles Ignorieren: bei
+/// einem 9B-Modell entscheidet die Umwandlung darüber, ob der Lauf in den
+/// Speicher passt. Ein durchgerutschter Tippfehler ließe es in voller Breite
+/// laufen, und das fällt erst beim OOM auf.
+pub fn gewichts_typ(raw: &str) -> Result<String> {
+    let name = raw.trim().to_ascii_lowercase();
+    if GEWICHTSTYPEN.contains(&name.as_str()) {
+        Ok(name)
+    } else {
+        bail!("'{raw}' ist kein bekannter Gewichtstyp. Gültig: {}", GEWICHTSTYPEN.join(", "));
+    }
+}
+
 /// Wie das freigestellte Bild abgelegt wird.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Canvas {
@@ -157,5 +178,21 @@ mod tests {
         assert!(flag_wert(Some("1"), false));
         assert!(flag_wert(None, true), "ohne Angabe gilt der Default");
         assert!(!flag_wert(None, false));
+    }
+
+    #[test]
+    fn gewichtstyp_wird_normalisiert() {
+        assert_eq!(gewichts_typ("Q8_0").unwrap(), "q8_0");
+        assert_eq!(gewichts_typ(" q4_k ").unwrap(), "q4_k");
+        assert_eq!(gewichts_typ("f16").unwrap(), "f16");
+    }
+
+    #[test]
+    fn unbekannter_gewichtstyp_ist_ein_fehler() {
+        // Ein Tippfehler würde sonst still ignoriert und das Modell liefe in
+        // voller Breite — bei einem 9B-Modell ist das der Unterschied zwischen
+        // Lauf und OOM.
+        let err = gewichts_typ("q9_z").expect_err("kein gültiger Typ");
+        assert!(err.to_string().contains("q8_0"), "Fehler nennt die gültigen Werte: {err}");
     }
 }

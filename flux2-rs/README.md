@@ -105,6 +105,48 @@ Der erste Lauf lädt bei `Q5_K_M` rund 5,9 GB (DiT 2,9 GB + Qwen3 2,7 GB + VAE 3
 und baut stable-diffusion.cpp — beides passiert nur einmal, abgebrochene Downloads
 setzt `curl -C -` fort.
 
+### Zweiter Modellsatz: klein-base 9B
+
+`--preset klein-base-9b` nutzt
+[FLUX.2-klein-base-9b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9b-fp8)
+statt des distillierten 4B-Modells:
+
+```sh
+export HF_TOKEN=hf_...          # Repo ist gated, siehe unten
+scripts/generate-macos.sh --preset klein-base-9b "a red panda, plain solid background"
+```
+
+| | klein-4b (Default) | klein-base-9b |
+|---|---|---|
+| Format | GGUF, quantisiert | fp8-Safetensors, 9,5 GB |
+| Distilliert | ja | **nein** |
+| `--cfg` | 1.0 | 4.0 |
+| `--steps` | 4 | 20 |
+| Zugang | offen | gated, Token nötig |
+
+Beide Vorgaben setzt das Preset automatisch; eigenes `--steps` oder `--cfg` gewinnt.
+Nicht distilliert heißt: mit `cfg 1.0` und 4 Steps kommt Matsch heraus, das Modell
+braucht Classifier-Free Guidance und die fünffache Zahl an Schritten. Rechne mit
+deutlich längeren Läufen.
+
+**Speicher.** sd.cpp rechnet fp8 beim Einlesen auf f16 hoch
+(`model_loader.cpp`: `f8_e4m3_to_f16_vec`) — aus 9,5 GB auf der Platte werden rund
+19 GB im Speicher, dazu der Text-Encoder. Auf 32 GB wird das eng. Deshalb setzt das
+Preset `--wtype q8_0`: die Gewichte werden beim Laden quantisiert und bleiben bei etwa
+der Dateigröße. `--wtype q4_k` halbiert das noch einmal, `--wtype f16` lässt es voll.
+
+**Gated Repo.** Ohne Token liefert Hugging Face eine Fehlerseite statt der Gewichte.
+Auf der Modellseite die Lizenz bestätigen, unter *Settings → Access Tokens* ein Token
+mit Leserecht anlegen und `HF_TOKEN=hf_...` setzen. Das Script hängt den
+Authorization-Header dann an alle Downloads und weist beim Scheitern darauf hin.
+
+**Text-Encoder.** Das Repo enthält nur den Diffusion-Transformer. Encoder und VAE bleiben
+dieselben wie bisher. Welchen Encoder sd.cpp erwartet, entscheidet es selbst anhand der
+Blockzahl im Modell und schreibt es ins Log: `Version: Flux.2 klein` bedeutet Qwen3 —
+dann passt der vorhandene. Steht dort `Version: Flux.2`, erwartet sd.cpp Mistral Small 3.2
+als Encoder, und der müsste zusätzlich geladen werden (`LLM=` auf die Datei zeigen).
+Das lässt sich vorher nicht ablesen, der erste Lauf sagt es dir.
+
 Geschrieben werden zwei Dateien: `out.raw.png` (wie das Modell es gemalt hat) und
 `out.png` (freigestellt, Hintergrund `alpha = 0`). `--keep-bg` lässt den zweiten Schritt
 weg. Wichtigste Optionen, `--help` zeigt alle:
@@ -130,7 +172,9 @@ weg. Wichtigste Optionen, `--help` zeigt alle:
 | `--no-despill` | – | Farbsaum in den Randpixeln stehen lassen |
 | `--quiet` / `--debug` | – | sd.cpp-Log aus bzw. mit DEBUG-Zeilen |
 | `--cutoff N` | `12` | Alpha ≤ N gilt als Hintergrund |
-| `--quant Q` | `Q5_K_M` | Quantisierung der beiden großen Modelle |
+| `--preset` | `klein-4b` | Modellsatz; `klein-base-9b` siehe unten |
+| `--wtype TYP` | – | Gewichte beim Laden umwandeln (q8_0, q4_k, …) |
+| `--quant Q` | `Q5_K_M` | GGUF-Quantisierung für klein-4b |
 | `--threads N` | P-Kerne | Default: `hw.perflevel0.physicalcpu` |
 | `--rebuild` / `--download-only` | – | neu bauen bzw. nur vorbereiten |
 
@@ -265,6 +309,7 @@ Alle Parameter sind Umgebungsvariablen — es gibt keinen Argument-Parser:
 | `DIT` | Q3_K_M-Pfad | Diffusion-Transformer (GGUF) |
 | `LLM` | Q4_K_M-Pfad | Text-Encoder (GGUF) |
 | `VAE` | `$MODELS_DIR/vae/flux2-vae.safetensors` | VAE |
+| `WTYPE` | – | Gewichte beim Laden umwandeln: f32, f16, q8_0, q6_k, q5_k, q4_k, q3_k |
 | `MMAP` | `1` | GGUF von der Platte mappen statt in den Heap kopieren. **Auf Metal/CUDA `0` setzen** — sonst graues Bild, siehe Stolpersteine |
 | `FLASH_ATTENTION` | `1` | Flash-Attention in DiT und Text-Encoder — in sd.cpp nur für manche Modell/Backend-Paare implementiert |
 | `VAE_TILING` | `1` | VAE gekachelt dekodieren — spart Speicher, kostet Zeit |
