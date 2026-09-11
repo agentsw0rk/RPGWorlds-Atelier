@@ -189,6 +189,48 @@ das Modell hat kein Gedächtnis zwischen Läufen, ein einziges geändertes Wort 
 den Stil der ganzen Reihe. Zusammen mit festem Seed und `-r` auf eine bereits
 akzeptierte Figur ist das der einzige Weg zu einer einheitlichen Bibliothek.
 
+## Ganze Reihe: `charaktere.txt` und `scripts/batch.sh`
+
+`charaktere.txt` enthält 43 fertige Figuren — Völker von Zwerg bis Thri-Kreen, Klassen von
+Barbar bis Artificer, jeweils mit erfundenem Namen, deutscher Beschreibung und englischem
+Prompt:
+
+```
+slug | Name | Beschreibung (deutsch, für dich) | Prompt (englisch, fürs Modell)
+```
+
+Der slug wird zum Dateinamen, die Beschreibung liest nur der Mensch. `scripts/batch.sh`
+arbeitet die Liste ab:
+
+```sh
+scripts/batch.sh                       # alles, was noch fehlt
+scripts/batch.sh --dry-run             # nur zeigen, was zu tun wäre
+scripts/batch.sh --from korth-froststurm
+scripts/batch.sh --only nyx-aschenkind --seeds 3 --seed -1
+```
+
+| Option | Bedeutung |
+|---|---|
+| `--liste DATEI` | andere Charakterliste (Default: `<repo>/charaktere.txt`) |
+| `--out-dir DIR` | Zielverzeichnis (Default: `tokens`) |
+| `--from SLUG` | erst ab diesem Eintrag beginnen |
+| `--only SLUG` | nur diesen einen Eintrag |
+| `--force` | auch vorhandene Tokens neu erzeugen |
+| `-n, --dry-run` | nur zeigen, was zu tun wäre |
+
+Alles Weitere geht an `token.sh` und damit an `generate-macos.sh` durch.
+
+**Fortsetzen ist der Normalfall.** Vorhandene Dateien im Zielverzeichnis gelten als
+erledigt und werden übersprungen — ein erneuter Aufruf macht dort weiter, wo der letzte
+aufgehört hat. Ein Abbruch mit Ctrl-C räumt die gerade entstehende Datei weg, damit sie
+beim nächsten Mal nicht fälschlich als fertig gilt. Eine einzelne fehlgeschlagene Figur
+bricht die Reihe nicht ab; sie steht am Ende in der Zusammenfassung, und der Exit-Code
+ist dann ungleich 0.
+
+Nach jeder Figur schätzt das Script aus dem bisherigen Mittel die Restzeit — bei über
+40 Figuren ist der Unterschied zwischen "gleich fertig" und "über Nacht" die
+Planungsgrundlage.
+
 ## Ausführen
 
 ```sh

@@ -1,0 +1,65 @@
+# Charakterliste für scripts/batch.sh
+#
+# Format je Zeile, mit | getrennt:
+#   slug | Name | Beschreibung (deutsch, für dich) | Prompt (englisch, fürs Modell)
+#
+# Der slug wird zum Dateinamen. Die Beschreibung liest nur der Mensch, das
+# Modell bekommt ausschließlich den Prompt — dahinter hängt token.sh Pose und
+# Stil. Zeilen mit # und leere Zeilen werden übersprungen.
+#
+# Die Auswahl deckt bewusst sehr verschiedene Silhouetten ab: gedrungen und
+# hochgewachsen, gefiedert, geschuppt, gehörnt, vierbeinig, winzig. Bei einem
+# 138x244-Token ist die Umrisslinie das, was man auf der Karte erkennt.
+
+# --- Klassische Völker -------------------------------------------------------
+thrain-eisenbart      | Thrain Eisenbart       | Bergzwerg-Priester, Ordenshüter einer Schmiedegottheit, geflochtener Bart, Kriegshammer | male mountain dwarf cleric, dark iron mail, warhammer, long braided beard, holy symbol on chest
+maelis-abendtau       | Maelis Abendtau        | Hochelfen-Magierin, Bibliothekarin einer versunkenen Akademie, Reisestab und Foliant | female high elf wizard, layered blue robes, tall wooden staff, open spellbook under one arm
+brann-hufschlag       | Brann Hufschlag        | Menschlicher Kämpfer, ehemaliger Söldnerhauptmann, schartiges Langschwert, Kettenhemd | male human fighter, weathered chainmail and tabard, longsword, short cropped hair, scarred cheek
+pip-quellgrund        | Pip Quellgrund         | Halbling-Schurke, Taschendieb mit Anstand, Kapuze, zwei Dolche | male halfling rogue, dark hooded leather cloak, two daggers, small satchel, bare feet
+ysolde-kerzenlicht    | Ysolde Kerzenlicht     | Halbelfen-Bardin, Chronistin von Schlachten, Laute und Federhut | female half-elf bard, embroidered travel coat, lute on her back, wide feathered hat
+gnarl-zahnrad         | Gnarl Zahnrad          | Felsgnom-Artificer, Erfinder mit ruinierten Augenbrauen, Werkzeuggurt und Armbrust | male rock gnome artificer, leather apron, goggles on forehead, tool belt, small crossbow
+kassra-narbenhand     | Kassra Narbenhand      | Halbork-Barbarin, Stammeskriegerin, Großaxt, Fellumhang | female half-orc barbarian, fur mantle over bare shoulders, great axe, war paint, tusks
+veyra-nachtschatten   | Veyra Nachtschatten    | Waldelfen-Waldläuferin, Grenzgängerin, Langbogen und Tarnmantel | female wood elf ranger, green hooded cloak, longbow and quiver, leather bracers
+
+# --- Gehörnt, geschuppt, gezeichnet ------------------------------------------
+azrakh-flammenzunge   | Azrakh Flammenzunge    | Roter Drachenblütiger, Paladin eines Eidbundes, Schuppen wie Rost, Zweihänder | male red dragonborn paladin, copper scaled skin, heavy plate armor, greatsword, draconic snout
+nyx-aschenkind        | Nyx Aschenkind         | Tiefling-Hexenmeisterin, Pakt mit etwas Namenlosem, geschwungene Hörner, Grimoire | female tiefling warlock, dark violet skin, long curved horns, tattered robes, floating grimoire
+seraphiel-morgenglanz | Seraphiel Morgenglanz  | Aasimar-Klerikerin, Botin eines Lichtwesens, Federflügel, Streitkolben | female aasimar cleric, white and gold robes, feathered wings, mace, faint halo
+sethiss-glattschuppe  | Sethiss Glattschuppe   | Yuan-ti-Reinblut-Zauberer, kalter Diplomat, Schlangenaugen, Zeremonienstab | male yuan-ti pureblood sorcerer, subtle green scales, silk ceremonial robes, serpent-headed staff
+khoruk-schlammzahn    | Khoruk Schlammzahn     | Echsenmensch-Barbar, Sumpfjäger, Knochenschmuck, Steinkeule | male lizardfolk barbarian, swamp green scales, bone jewelry, heavy stone club, crocodile snout
+zit-funkenschweif     | Zit Funkenschweif      | Kobold-Artificer, Fallenbauer, viel zu große Schutzbrille, Rucksack voll Zündkram | male kobold artificer, small reptilian frame, oversized goggles, backpack of gadgets, short spear
+
+# --- Fell, Federn, Panzer ----------------------------------------------------
+mirrath-samtpfote     | Mirrath Samtpfote      | Tabaxi-Mönchin, Wanderin ohne Ziel, gefleckt, Handwickel | female tabaxi monk, spotted fur, simple wrapped tunic, bare hands wrapped in cloth, long tail
+schild-auf-dem-ruecken| Schild-auf-dem-Rücken  | Tortle-Kämpfer, alter Küstenwächter, Panzer voller Kerben, Enterhaken | male tortle fighter, weathered green shell, sailor coat, boarding hook, slow heavy stance
+kra-kra-siebenfeder   | Kra-Kra Siebenfeder    | Kenku-Schurke, spricht nur in fremden Stimmen, Rabenkopf, Wurfmesser | kenku rogue, black feathered raven head, patchwork dark leathers, throwing knives
+hoots-mondauge        | Hoots Mondauge         | Owlin-Magier, Nachtbeobachter, Eulengesicht, Federmantel als Flügel | owlin wizard, owl face and feathered arms forming wings, star-patterned robe, small wand
+lop-kleeschlag        | Lop Kleeschlag         | Harengon-Mönch, unruhiger Hasenkrieger, lange Löffel, Stab | harengon monk, long rabbit ears, brown fur, light wandering clothes, wooden staff
+orrin-steinhuf        | Orrin Steinhuf         | Zentauren-Waldläufer, Ebenenreiter, Pferdeleib, Speer und Rundschild | centaur ranger, horse lower body, human torso with leather harness, spear and round shield
+baru-langzahn         | Baru Langzahn          | Loxodon-Kleriker, geduldiger Gelehrter, Elefantenkopf, Gebetskette | loxodon cleric, grey elephant head with tusks, heavy temple robes, prayer beads, long staff
+rhosan-goldmaehne     | Rhosan Goldmähne       | Leonin-Kämpferin, Ehrenwächterin, Löwenmähne, Speer | female leonin fighter, golden lion mane, bronze scale armor, long spear, proud stance
+thriss-kikk           | Thriss'kikk            | Thri-Kreen-Mönch, vier Arme, Insektenpanzer, zwei Kurzstäbe | thri-kreen monk, insectoid chitin body, four arms, two short staves, mandibles
+
+# --- Elementar und Gestaltet -------------------------------------------------
+ignis-kohlenherz      | Ignis Kohlenherz       | Feuergenasi-Barbar, Haar aus Glut, rissige Haut, Kriegshammer | male fire genasi barbarian, cracked skin glowing like embers, flame-like hair, heavy war hammer
+nerida-tiefenstrom    | Nerida Tiefenstrom     | Wassergenasi-Druidin, Küstenheilerin, blaugrüne Haut, Muschelstab | female water genasi druid, blue-green skin, flowing hair like water, coral staff, shell jewelry
+terrak-grundfels      | Terrak Grundfels       | Erdgenasi-Mönch, schweigsam, Steinadern im Gesicht, bloße Fäuste | male earth genasi monk, stone-veined skin, plain grey robes, bare fists, wide stable stance
+sylvi-windfang        | Sylvi Windfang         | Luftgenasi-Schurkin, Dachläuferin, hellblaue Haut, Wurfdolche | female air genasi rogue, pale blue skin, wind-swept white hair, light scarf, throwing daggers
+einheit-neun          | Einheit Neun           | Warforged-Kämpfer, Veteran eines beendeten Krieges, Metallkörper, Turmschild | warforged fighter, plated metal body with glowing eye slits, tower shield, battered sword
+kling-und-klang       | Kling-und-Klang        | Autognome-Artificer, sprechendes Uhrwerk, winzig, Werkzeugarm | autognome artificer, tiny clockwork body, brass plating, tool arm, wind-up key on back
+blob-wichtig          | Blob Wichtig           | Plasmoid-Schurke, formloser Reisender, gallertartig, Dolch im Pseudopod | plasmoid rogue, translucent amber gelatinous body, humanoid shape, dagger held in a pseudopod
+simic-drei            | Simic Drei             | Simic-Hybrid-Druide, Laborgeschöpf, Krebsscheren-Arme, Kiemen | simic hybrid druid, humanoid with crab claw arms and gill fins, aquatic bio-armor, kelp staff
+
+# --- Unterreich und Grenzgänger ----------------------------------------------
+morgrim-tiefhammer    | Morgrim Tiefhammer     | Duergar-Kämpfer, Unterreich-Vorarbeiter, graue Haut, Kriegspickel | male duergar fighter, ashen grey skin, bald with long beard, spiked plate, war pick
+fiz-flatterfels       | Fiz Flatterfels        | Tiefengnom-Schurke, Schleichbergmann, Schutzbrille, Steinmesser | male deep gnome rogue, slate grey skin, dark mining leathers, goggles, stone dagger
+vashti-dornenkrone    | Vashti Dornenkrone     | Shadar-Kai-Hexenmeisterin, Dienerin der Rabenkönigin, fahle Haut, Kettenpeitsche | female shadar-kai warlock, pale grey skin, black tattoos, ragged dark dress, chain whip
+elowin-dammerschein   | Elowin Dämmerschein    | Eladrin-Bardin, Feenhof-Gesandte, Kirschblüten im Haar, Harfe | female eladrin bard, iridescent pale skin, cherry blossom in hair, layered fey silks, small harp
+tisha-dornfluegel     | Tisha Dornflügel       | Fee-Zauberin, handgroß geflügelt, Libellenflügel, Zauberstab aus Zweig | fairy sorcerer, tiny winged figure, dragonfly wings, flower petal clothing, twig wand
+githra-klingenwille   | Githra Klingenwille    | Githyanki-Kämpferin, Astralraum-Kriegerin, gelbe Haut, Silberklinge | female githyanki fighter, yellow skin, red leather and bone armor, silver greatsword, severe topknot
+zerrin-stillgeist     | Zerrin Stillgeist      | Githzerai-Mönch, Askese in Fleisch, hagerer Körper, bloße Hände | male githzerai monk, gaunt yellow-grey skin, simple ochre wrappings, bare hands, calm expression
+korth-froststurm      | Korth Froststurm       | Goliath-Barbar, Hochgebirgsjäger, steingraue Haut, Zweihandaxt | male goliath barbarian, tall grey skin with dark markings, fur and hide armor, huge two-handed axe
+birkfried-moosbart    | Birkfried Moosbart     | Firbolg-Druide, sanfter Waldhüter, Kuhohren, Wurzelstab | male firbolg druid, tall blue-grey skin, bovine nose and ears, mossy robes, gnarled root staff
+mal-akai-doppelstimme | Mal'akai Doppelstimme  | Kalashtar-Mönch, zwei Bewusstseine, ruhiger Blick, Tempelkleidung | male kalashtar monk, serene features, simple layered temple robes, subtle glowing eyes, bare feet
+hesper-wandelgesicht  | Hesper Wandelgesicht   | Changeling-Schurkin, Gesicht ohne festes Original, blasse Züge, Rapier | changeling rogue, featureless pale face, plain grey traveling clothes, rapier, mirror pendant
+brom-blutspur         | Brom Blutspur          | Dhampir-Blutjäger, jagt seinesgleichen, fahle Haut, Sichelklinge | male dhampir blood hunter, pale skin, dark red coat, curved hunting blade, glowing carved sigils

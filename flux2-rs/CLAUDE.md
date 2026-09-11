@@ -106,6 +106,11 @@ pure, testable half.
 - **`scripts/umgebung.sh`** — sourced by both scripts (not executable on its own): tool
   check, `LIBCLANG_PATH`/`CMAKE_GENERATOR`, thread count, and `bauen()` with the bindgen
   recovery. Changes to the toolchain search belong here, not in a caller.
+- **`charaktere.txt` + `scripts/batch.sh`** — the whole asset library in one run. The list is
+  `slug | Name | German description | English prompt`; only the prompt reaches the model.
+  Resume is file-based: an existing `<out-dir>/<slug>.png` counts as done, so re-running
+  continues where it stopped. The INT/TERM trap deletes the in-flight file first — otherwise
+  a truncated image would be treated as finished and the figure would silently be missing.
 - **`scripts/token.sh`** — thin wrapper over the driver for character-token batches: STYLE/POSE
   live in the script as variables (identical prompt text across runs is the whole point),
   the character comes in as the argument, and every unknown flag is forwarded to
