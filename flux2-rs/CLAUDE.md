@@ -109,8 +109,11 @@ pure, testable half.
 - **`scripts/umgebung.sh`** — sourced by both scripts (not executable on its own): tool
   check, `LIBCLANG_PATH`/`CMAKE_GENERATOR`, thread count, and `bauen()` with the bindgen
   recovery. Changes to the toolchain search belong here, not in a caller.
-- **Two model sets, `--preset`.** `klein-4b` (default, distilled GGUF, cfg 1.0 / 4 steps)
-  and `klein-base-9b` (non-distilled fp8 safetensors, cfg 4.0 / 20 steps, gated repo).
+- **Three model sets, `--preset`.** A preset pins the diffusion model **and** its text
+  encoder together: `klein-4b` (Qwen3-4B), `klein-9b` (Qwen3-8B, distilled GGUF) and
+  `klein-base-9b` (Qwen3-8B, non-distilled fp8, gated). The 9B checkpoints ship a ~8B
+  encoder (`text_encoder/` in the BFL repo is 16.4 GB of bf16); pairing a 9B model with the
+  4B encoder is a silent mismatch. `--llm FILE` overrides it for the Mistral case below.
   Two traps live here: sd.cpp expands fp8 to f16 while loading
   (`model_loader.cpp: f8_e4m3_to_f16_vec`), so 9.5 GB on disk become ~19 GB in memory —
   the preset therefore defaults to `WTYPE=q8_0`, which quantizes at load time. And the

@@ -12,3 +12,8 @@ target/
 # Erzeugte Bilder und Protokolle von Läufen
 *.png
 *.log
+
+# Zugangsdaten gehören nicht ins Repository.
+*token*.env
+*.secret
+.env

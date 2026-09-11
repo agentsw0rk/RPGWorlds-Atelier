@@ -105,47 +105,54 @@ Der erste Lauf lädt bei `Q5_K_M` rund 5,9 GB (DiT 2,9 GB + Qwen3 2,7 GB + VAE 3
 und baut stable-diffusion.cpp — beides passiert nur einmal, abgebrochene Downloads
 setzt `curl -C -` fort.
 
-### Zweiter Modellsatz: klein-base 9B
+### Drei Modellsätze: `--preset`
 
-`--preset klein-base-9b` nutzt
-[FLUX.2-klein-base-9b-fp8](https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9b-fp8)
-statt des distillierten 4B-Modells:
+Ein Preset legt **Diffusionsmodell und Text-Encoder zusammen** fest. Das gehört zusammen:
+die 9B-Modelle bringen laut Repo-Struktur einen rund 8 GB großen Encoder mit
+(`text_encoder/` ist bei `black-forest-labs/FLUX.2-klein-9B` 16,4 GB in bf16, also ~8B
+Parameter), der 4B einen 4B großen. Mit dem falschen Encoder lädt sd.cpp entweder gar
+nicht oder liefert Unsinn.
+
+| Preset | Diffusionsmodell | Encoder | cfg / Steps | Zugang |
+|---|---|---|---|---|
+| `klein-4b` (Default) | GGUF, distilliert | Qwen3-4B | 1.0 / 4 | offen |
+| `klein-9b` | GGUF, distilliert | Qwen3-8B | 1.0 / 4 | offen |
+| `klein-base-9b` | fp8-Safetensors, 9,5 GB | Qwen3-8B | 4.0 / 20 | gated |
 
 ```sh
-export HF_TOKEN=hf_...          # Repo ist gated, siehe unten
-scripts/generate-macos.sh --preset klein-base-9b "a red panda, plain solid background"
+scripts/generate-macos.sh --preset klein-9b "a red panda, plain solid background"
+
+export HF_TOKEN=hf_...                      # nur für klein-base-9b
+scripts/generate-macos.sh --preset klein-base-9b "..."
 ```
 
-| | klein-4b (Default) | klein-base-9b |
-|---|---|---|
-| Format | GGUF, quantisiert | fp8-Safetensors, 9,5 GB |
-| Distilliert | ja | **nein** |
-| `--cfg` | 1.0 | 4.0 |
-| `--steps` | 4 | 20 |
-| Zugang | offen | gated, Token nötig |
+**Welches?** `klein-9b` ist für die meisten Fälle die bessere Wahl als `klein-base-9b`:
+gleiche Größenordnung, aber distilliert (vier statt zwanzig Steps) und als GGUF statt
+fp8 — sd.cpp muss fp8 beim Laden auf f16 hochrechnen
+(`model_loader.cpp`: `f8_e4m3_to_f16_vec`), aus 9,5 GB werden dann rund 19 GB im
+Speicher. Deshalb setzt `klein-base-9b` automatisch `--wtype q8_0`. GGUF hat dieses
+Problem nicht, dort steht die Quantisierung schon in der Datei.
 
-Beide Vorgaben setzt das Preset automatisch; eigenes `--steps` oder `--cfg` gewinnt.
-Nicht distilliert heißt: mit `cfg 1.0` und 4 Steps kommt Matsch heraus, das Modell
-braucht Classifier-Free Guidance und die fünffache Zahl an Schritten. Rechne mit
-deutlich längeren Läufen.
+**Wenn sd.cpp Mistral verlangt.** Welchen Encoder ein Checkpoint braucht, entscheidet
+sd.cpp selbst anhand der Blockzahl (`model_loader.cpp:600`) und schreibt es ins Log:
 
-**Speicher.** sd.cpp rechnet fp8 beim Einlesen auf f16 hoch
-(`model_loader.cpp`: `f8_e4m3_to_f16_vec`) — aus 9,5 GB auf der Platte werden rund
-19 GB im Speicher, dazu der Text-Encoder. Auf 32 GB wird das eng. Deshalb setzt das
-Preset `--wtype q8_0`: die Gewichte werden beim Laden quantisiert und bleiben bei etwa
-der Dateigröße. `--wtype q4_k` halbiert das noch einmal, `--wtype f16` lässt es voll.
+* `Version: Flux.2 klein` → Qwen3, das Preset passt.
+* `Version: Flux.2` → **Mistral Small 3.2**, dann passt keiner der Qwen3-Encoder.
 
-**Gated Repo.** Ohne Token liefert Hugging Face eine Fehlerseite statt der Gewichte.
-Auf der Modellseite die Lizenz bestätigen, unter *Settings → Access Tokens* ein Token
-mit Leserecht anlegen und `HF_TOKEN=hf_...` setzen. Das Script hängt den
-Authorization-Header dann an alle Downloads und weist beim Scheitern darauf hin.
+Für diesen Fall gibt es `--llm`:
 
-**Text-Encoder.** Das Repo enthält nur den Diffusion-Transformer. Encoder und VAE bleiben
-dieselben wie bisher. Welchen Encoder sd.cpp erwartet, entscheidet es selbst anhand der
-Blockzahl im Modell und schreibt es ins Log: `Version: Flux.2 klein` bedeutet Qwen3 —
-dann passt der vorhandene. Steht dort `Version: Flux.2`, erwartet sd.cpp Mistral Small 3.2
-als Encoder, und der müsste zusätzlich geladen werden (`LLM=` auf die Datei zeigen).
-Das lässt sich vorher nicht ablesen, der erste Lauf sagt es dir.
+```sh
+curl -L -o models/text_encoder/mistral-small-3.2-Q4_K_M.gguf \
+  "https://huggingface.co/unsloth/Mistral-Small-3.2-24B-Instruct-2506-GGUF/resolve/main/Mistral-Small-3.2-24B-Instruct-2506-Q4_K_M.gguf"
+
+scripts/generate-macos.sh --preset klein-base-9b \
+  --llm models/text_encoder/mistral-small-3.2-Q4_K_M.gguf "..."
+```
+
+Mistral Small 3.2 hat 24B Parameter: Q4_K_M sind rund 14 GB, Q8_0 rund 25 GB. Zusammen
+mit einem 9B-Diffusionsmodell ist das auf 32 GB unrealistisch — in dem Fall bleibt nur
+eine kleinere Quantisierung beider Teile oder der Rückgriff auf die klein-Modelle mit
+Qwen3.
 
 Geschrieben werden zwei Dateien: `out.raw.png` (wie das Modell es gemalt hat) und
 `out.png` (freigestellt, Hintergrund `alpha = 0`). `--keep-bg` lässt den zweiten Schritt
@@ -172,7 +179,8 @@ weg. Wichtigste Optionen, `--help` zeigt alle:
 | `--no-despill` | – | Farbsaum in den Randpixeln stehen lassen |
 | `--quiet` / `--debug` | – | sd.cpp-Log aus bzw. mit DEBUG-Zeilen |
 | `--cutoff N` | `12` | Alpha ≤ N gilt als Hintergrund |
-| `--preset` | `klein-4b` | Modellsatz; `klein-base-9b` siehe unten |
+| `--preset` | `klein-4b` | Modellsatz: `klein-4b`, `klein-9b`, `klein-base-9b` |
+| `--llm DATEI` | – | eigener Text-Encoder (Mistral-Fall, siehe oben) |
 | `--wtype TYP` | – | Gewichte beim Laden umwandeln (q8_0, q4_k, …) |
 | `--quant Q` | `Q5_K_M` | GGUF-Quantisierung für klein-4b |
 | `--threads N` | P-Kerne | Default: `hw.perflevel0.physicalcpu` |

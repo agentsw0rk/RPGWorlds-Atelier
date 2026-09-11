@@ -49,6 +49,7 @@ vae_tiling=0          # 32 GB brauchen kein gekacheltes VAE-Decoding
 flash_attention=0
 preset=klein-4b       # Modellsatz, siehe unten
 wtype=""             # Gewichte beim Laden umwandeln, z. B. q8_0
+llm_datei=""         # eigener Text-Encoder statt des zum Preset passenden
 cfg_scale=1.0        # wird vom Modellsatz überschrieben, wenn nicht gesetzt
 cfg_gesetzt=""
 steps_gesetzt=""
@@ -140,11 +141,15 @@ Qualität und Diagnose:
       --debug           zusätzlich DEBUG-Zeilen zeigen
 
 Modelle und Build:
-      --preset NAME     Modellsatz (Default: klein-4b)
-                        klein-4b      distilliert, GGUF, cfg 1.0 und 4 Steps
-                        klein-base-9b nicht distilliert, fp8-Safetensors, 9,5 GB,
-                                      cfg 4.0 und 20 Steps. Repo ist gated:
-                                      Lizenz bestätigen und HF_TOKEN setzen.
+      --preset NAME     Modellsatz (Default: klein-4b). Legt Diffusionsmodell und
+                        passenden Text-Encoder zusammen fest:
+                        klein-4b      distilliert, GGUF, Qwen3-4B, cfg 1.0, 4 Steps
+                        klein-9b      distilliert, GGUF, Qwen3-8B, cfg 1.0, 4 Steps
+                        klein-base-9b nicht distilliert, fp8, Qwen3-8B, cfg 4.0,
+                                      20 Steps. Repo gated: HF_TOKEN setzen.
+      --llm DATEI       Eigener Text-Encoder statt des zum Preset gehörenden.
+                        Für den Fall, dass sd.cpp im Log "Version: Flux.2" statt
+                        "Flux.2 klein" meldet — dann erwartet es Mistral Small 3.2.
       --wtype TYP       Gewichte beim Laden umwandeln: f32, f16, q8_0, q6_k,
                         q5_k, q4_k, q3_k. sd.cpp rechnet fp8 beim Einlesen auf
                         f16 hoch — aus 9,5 GB werden sonst rund 19 GB im
@@ -223,6 +228,7 @@ while [ $# -gt 0 ]; do
         --cfg)           require_float "--cfg" "$2"; cfg_scale="$2"; cfg_gesetzt=1; shift 2 ;;
         --preset)        preset="$2"; shift 2 ;;
         --wtype)         wtype="$2"; shift 2 ;;
+        --llm)           llm_datei="$2"; shift 2 ;;
         --guidance)      require_float "--guidance" "$2"; guidance="$2"; shift 2 ;;
         --quiet)         log_level=0; shift ;;
         --debug)         log_level=2; shift ;;
@@ -298,16 +304,35 @@ fetch() {
 
 hf="https://huggingface.co"
 # --- Modellsatz --------------------------------------------------------------
+# Jeder Satz legt Diffusionsmodell *und* Text-Encoder fest. Die Größen gehören
+# zusammen: die 9B-Modelle bringen laut Repo-Struktur einen rund 8B großen
+# Encoder mit (text_encoder/ ist dort 16,4 GB in bf16), der 4B einen 4B großen.
+# Mit dem falschen Encoder lädt sd.cpp entweder gar nicht oder liefert Unsinn.
+#
 # klein-4b:      distilliert, GGUF, cfg 1.0 und wenige Steps. Der Normalfall.
+# klein-9b:      distilliert, GGUF, größeres Modell — gleiche Bedienung, mehr
+#                Qualität und mehr Rechenzeit.
 # klein-base-9b: nicht distilliert, eine fp8-Safetensors-Datei von 9,5 GB.
 #                Braucht cfg ~4.0 und ~20 Steps, sonst kommt Matsch heraus.
 #                sd.cpp rechnet fp8 beim Laden auf f16 hoch, deshalb ist hier
 #                WTYPE=q8_0 voreingestellt — ohne das sind es rund 19 GB.
+llm_quant="$quant"
 case "$preset" in
     klein-4b)
         dit="$models_dir/diffusion/flux-2-klein-4b-$quant.gguf"
         dit_url="$hf/unsloth/FLUX.2-klein-4B-GGUF/resolve/main/flux-2-klein-4b-$quant.gguf"
         dit_label="Diffusion-Transformer klein 4B ($quant)"
+        llm_name="Qwen3-4B"
+        llm_repo="unsloth/Qwen3-4B-GGUF"
+        [ -n "$steps_gesetzt" ] || steps=4
+        [ -n "$cfg_gesetzt" ]   || cfg_scale=1.0
+        ;;
+    klein-9b)
+        dit="$models_dir/diffusion/flux-2-klein-9b-$quant.gguf"
+        dit_url="$hf/unsloth/FLUX.2-klein-9B-GGUF/resolve/main/flux-2-klein-9b-$quant.gguf"
+        dit_label="Diffusion-Transformer klein 9B ($quant)"
+        llm_name="Qwen3-8B"
+        llm_repo="unsloth/Qwen3-8B-GGUF"
         [ -n "$steps_gesetzt" ] || steps=4
         [ -n "$cfg_gesetzt" ]   || cfg_scale=1.0
         ;;
@@ -315,22 +340,40 @@ case "$preset" in
         dit="$models_dir/diffusion/flux-2-klein-base-9b-fp8.safetensors"
         dit_url="$hf/black-forest-labs/FLUX.2-klein-base-9b-fp8/resolve/main/flux-2-klein-base-9b-fp8.safetensors"
         dit_label="Diffusion-Transformer klein-base 9B (fp8, 9,5 GB)"
+        llm_name="Qwen3-8B"
+        llm_repo="unsloth/Qwen3-8B-GGUF"
         [ -n "$steps_gesetzt" ] || steps=20
         [ -n "$cfg_gesetzt" ]   || cfg_scale=4.0
         [ -n "$wtype" ]         || wtype=q8_0
         ;;
     *)
-        die "Unbekannter Modellsatz: '$preset'. Gültig: klein-4b, klein-base-9b"
+        die "Unbekannter Modellsatz: '$preset'. Gültig: klein-4b, klein-9b, klein-base-9b"
         ;;
 esac
 
-llm="$models_dir/text_encoder/Qwen3-4B-$quant.gguf"
+# --llm zeigt auf eine eigene Encoder-Datei. Gedacht für den Fall, dass sd.cpp
+# im Log "Version: Flux.2" statt "Flux.2 klein" meldet und damit Mistral Small
+# 3.2 erwartet — dann passt keiner der Qwen3-Encoder.
+if [ -n "$llm_datei" ]; then
+    [ -f "$llm_datei" ] || die "Encoder-Datei nicht gefunden: $llm_datei"
+    llm="$llm_datei"
+    llm_url=""
+    llm_label="Text-Encoder (eigene Datei)"
+else
+    llm="$models_dir/text_encoder/$llm_name-$llm_quant.gguf"
+    llm_url="$hf/$llm_repo/resolve/main/$llm_name-$llm_quant.gguf"
+    llm_label="Text-Encoder $llm_name ($llm_quant)"
+fi
+
 vae="$models_dir/vae/flux2-vae.safetensors"
 u2netp="$models_dir/matting/u2netp.onnx"
 
 fetch "$dit_url" "$dit" "$dit_label"
-fetch "$hf/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-$quant.gguf" \
-      "$llm" "Text-Encoder Qwen3-4B ($quant)"
+if [ -n "$llm_url" ]; then
+    fetch "$llm_url" "$llm" "$llm_label"
+else
+    echo "vorhanden: $llm_label"
+fi
 fetch "$hf/unsloth/FLUX.2-VAE/resolve/main/split_files/vae/flux2-vae.safetensors" \
       "$vae" "VAE"
 # Beim Farb-Keying wird u2netp gar nicht geladen — dann ist der Download unnötig.

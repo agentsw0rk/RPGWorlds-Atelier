@@ -85,7 +85,7 @@ while [ $# -gt 0 ]; do
         # Optionen mit Wert müssen den Wert mitnehmen, Schalter nicht.
         -s|--size|-W|--width|-H|--height|--steps|--seed|--seeds|--out-w|--out-h|\
         --cutoff|--threads|--quant|--cfg|--guidance|--strength|--ref-bg|-r|--ref|--init|\
-        --preset|--wtype|--key-color|--key-innen|--key-aussen|--key-loch|--key-loch-min)
+        --preset|--wtype|--llm|--key-color|--key-innen|--key-aussen|--key-loch|--key-loch-min)
             extra+=("$1" "$2"); shift 2 ;;
         -*)           extra+=("$1"); shift ;;
         *)            charakter="$1"; shift ;;
@@ -147,7 +147,7 @@ if [ "$dry_run" -eq 1 ]; then
         case "$arg" in
             -o|--out|--models|-s|--size|-W|--width|-H|--height|--steps|--seed|--seeds|\
             --out-w|--out-h|--cutoff|--threads|--quant|--cfg|--guidance|--strength|\
-            --ref-bg|-r|--ref|--init|--preset|--wtype|--key-color|--key-innen|\
+            --ref-bg|-r|--ref|--init|--preset|--wtype|--llm|--key-color|--key-innen|\
             --key-aussen|--key-loch|--key-loch-min)
                 wert_folgt=1 ;;
         esac
