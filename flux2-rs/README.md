@@ -191,13 +191,22 @@ akzeptierte Figur ist das der einzige Weg zu einer einheitlichen Bibliothek.
 
 ## Ganze Reihe: `charaktere.txt` und `scripts/batch.sh`
 
-`charaktere.txt` enthält 43 fertige Figuren — Völker von Zwerg bis Thri-Kreen, Klassen von
-Barbar bis Artificer, jeweils mit erfundenem Namen, deutscher Beschreibung und englischem
-Prompt:
+`charaktere.txt` enthält 450 fertige Figuren in 34 Abschnitten — bekannte Held:innen und
+Schurken, Völker von Zwerg bis Thri-Kreen, Klassen-Archetypen, Stadtvolk, Gegner und
+Kreaturen. Jede Zeile:
 
 ```
 slug | Name | Beschreibung (deutsch, für dich) | Prompt (englisch, fürs Modell)
 ```
+
+Bei bekannten Figuren steht der Name links, im Prompt aber nur das Aussehen: das Modell
+kennt die Namen nicht. `Drizzt` erzeugt nichts, `white-haired dark elf ranger with twin
+scimitars` erzeugt genau ihn. Wer eine Figur anders in Erinnerung hat, ändert die rechte
+Spalte.
+
+Bei 450 Figuren lohnt der Blick auf die Laufzeit: das sind mehrere Tage am Stück. Such
+dir mit `--only` oder `--from` aus, was du wirklich brauchst, oder lass den Stapel in
+Etappen laufen — Fortsetzen ist der Normalfall.
 
 Der slug wird zum Dateinamen, die Beschreibung liest nur der Mensch. `scripts/batch.sh`
 arbeitet die Liste ab:
