@@ -1,0 +1,14 @@
+# Modellgewichte (mehrere GB) und die Container-Toolchain gehören nicht ins Repo.
+models/
+tools/
+scratch/
+
+# Build-Ausgaben: target/ ist bei diesem Projekt zweistellig GB groß.
+target/
+
+# IDE-Zustand
+.idea/
+
+# Erzeugte Bilder und Protokolle von Läufen
+*.png
+*.log

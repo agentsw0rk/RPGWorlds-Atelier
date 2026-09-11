@@ -1,0 +1,33 @@
+[package]
+name = "flux2-rs"
+version = "0.1.0"
+edition = "2021"
+
+# Die Bildgenerierung zieht diffusion-rs/sd.cpp nach (langer C++-Build).
+# Das Freistellen braucht davon nichts, deshalb steckt der schwere Teil
+# hinter einem Feature: `cargo test --no-default-features` läuft in Sekunden.
+[features]
+default = ["generate"]
+generate = ["dep:diffusion-rs", "dep:diffusion-rs-sys"]
+
+[dependencies]
+anyhow = "1"
+image = "0.25"
+tract-onnx = "0.23"
+diffusion-rs = { version = "0.1.20", optional = true }
+# Direkt für sd_set_log_callback: ohne gesetzten Callback schreibt sd.cpp
+# keine einzige Zeile — kein Backend, keine Warnung, kein Modelltyp.
+diffusion-rs-sys = { version = "0.1.20", optional = true }
+
+[[bin]]
+name = "flux2-rs"
+path = "src/main.rs"
+required-features = ["generate"]
+
+[[bin]]
+name = "matte"
+path = "src/bin/matte.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
