@@ -13,8 +13,8 @@
 //! ```
 use anyhow::{bail, Context, Result};
 use flux2_rs::matting::{apply_mask_as_alpha, crop_to_content, fit_into, transparenz_anteil};
-use flux2_rs::keying::{hintergrund_maske, hintergrundfarbe, Toleranzen};
-use flux2_rs::params::{canvas, hex_farbe, Canvas};
+use flux2_rs::keying::{despill, hintergrund_maske, hintergrundfarbe, Toleranzen};
+use flux2_rs::params::{canvas, env_flag, hex_farbe, Canvas};
 use image::{GrayImage, Luma};
 use tract_onnx::prelude::*;
 
@@ -47,8 +47,10 @@ fn main() -> Result<()> {
     // Podeste und Schatten weg, auch wenn sie zum Motiv gehören sollen.
     // Leer gesetzt ist wie nicht gesetzt — das Script übergibt BG_KEY="" für
     // den Saliency-Weg.
-    let mask = match std::env::var("BG_KEY").ok().filter(|v| !v.trim().is_empty()) {
-        None => saliency_mask(&model_path, &rgb, cutoff)?,
+    // Die Key-Farbe wird später noch gebraucht: nur mit ihr lässt sich der
+    // Farbsaum aus den Randpixeln herausrechnen.
+    let (mask, key_farbe) = match std::env::var("BG_KEY").ok().filter(|v| !v.trim().is_empty()) {
+        None => (saliency_mask(&model_path, &rgb, cutoff)?, None),
         Some(wert) => {
             let key = if wert.trim().eq_ignore_ascii_case("auto") {
                 let erkannt = hintergrundfarbe(&rgb);
@@ -78,7 +80,7 @@ fn main() -> Result<()> {
                     tol.aussen
                 );
             }
-            hintergrund_maske(&rgb, key, tol)
+            (hintergrund_maske(&rgb, key, tol), Some(key))
         }
     };
     // MASK_OUT schreibt die rohe Maske als Graustufenbild. Wenn beim Freistellen
@@ -91,6 +93,11 @@ fn main() -> Result<()> {
     }
 
     let rgba = apply_mask_as_alpha(&rgb, &mask);
+    // Despill geht nur beim Keying: bei u2netp kennt niemand die Hintergrundfarbe.
+    let rgba = match key_farbe {
+        Some(key) if env_flag("DESPILL", true) => despill(&rgba, key),
+        _ => rgba,
+    };
 
     let final_img = match canvas_mode {
         Canvas::Original => rgba,

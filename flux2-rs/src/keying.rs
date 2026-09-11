@@ -6,7 +6,7 @@
 //! ähnelt **und vom Bildrand aus zusammenhängt** — damit bleiben graue Flächen
 //! mitten in der Figur erhalten.
 
-use image::{GrayImage, RgbImage};
+use image::{GrayImage, RgbImage, RgbaImage};
 
 /// Farbabstände, ab denen ein Pixel als Hintergrund bzw. als Motiv gilt.
 #[derive(Debug, Clone, Copy)]
@@ -161,7 +161,7 @@ pub fn hintergrund_maske(rgb: &RgbImage, key: image::Rgb<u8>, tol: Toleranzen) -
             lokal.push_back((x, y));
             while let Some((lx, ly)) = lokal.pop_front() {
                 flaeche.push((lx, ly));
-                let mut nachbar = |nx: u32, ny: u32, lokal: &mut std::collections::VecDeque<(u32, u32)>, besucht: &mut Vec<bool>| {
+                let nachbar = |nx: u32, ny: u32, lokal: &mut std::collections::VecDeque<(u32, u32)>, besucht: &mut Vec<bool>| {
                     if !besucht[index(nx, ny)] && abstand(nx, ny) <= loch {
                         besucht[index(nx, ny)] = true;
                         lokal.push_back((nx, ny));
@@ -217,10 +217,34 @@ pub fn hintergrund_maske(rgb: &RgbImage, key: image::Rgb<u8>, tol: Toleranzen) -
     maske
 }
 
+/// Rechnet die Hintergrundfarbe aus halbtransparenten Randpixeln heraus.
+///
+/// Das Modell malt weiche Kanten, deshalb ist jedes Randpixel eine Mischung
+/// `c = a·Motiv + (1-a)·Hintergrund`. Bleibt sie stehen, zieht sich ein Saum in
+/// Hintergrundfarbe um die Figur — bei Grau unauffällig, bei einem gesättigten
+/// Keying-Hintergrund ein deutlich sichtbarer Rand. Umgestellt nach dem Motiv:
+/// `Motiv = (c - (1-a)·Hintergrund) / a`.
+pub fn despill(rgba: &RgbaImage, key: image::Rgb<u8>) -> RgbaImage {
+    let mut out = rgba.clone();
+    for px in out.pixels_mut() {
+        let a = px[3] as f32 / 255.0;
+        // Bei sehr kleinem Alpha verstärkt die Division nur noch Rauschen, und
+        // sichtbar ist das Pixel ohnehin nicht.
+        if a <= 0.03 || a >= 1.0 {
+            continue;
+        }
+        for k in 0..3 {
+            let entmischt = (px[k] as f32 - (1.0 - a) * key[k] as f32) / a;
+            px[k] = entmischt.round().clamp(0.0, 255.0) as u8;
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use image::Rgb;
+    use image::{Rgb, Rgba};
 
     /// 6x6: Rand durchgehend grau, in der Mitte ein 2x2-Block in Rot.
     fn bild_mit_motiv() -> RgbImage {
@@ -392,5 +416,69 @@ mod tests {
         let maske = hintergrund_maske(&img, key, Toleranzen::default());
 
         assert_eq!(maske.get_pixel(32, 32)[0], 0, "die Lücke wird transparent");
+    }
+
+    #[test]
+    fn halbtransparente_kante_verliert_die_hintergrundfarbe() {
+        // Randpixel sind Mischungen: c = a*Motiv + (1-a)*Hintergrund. Bei 50 %
+        // Rot auf Grau steht also (228, 79, 79) im Bild — despill muss daraus
+        // wieder das reine Rot (200, 30, 30) machen.
+        let mut img = RgbaImage::new(1, 1);
+        img.put_pixel(0, 0, Rgba([228, 79, 79, 128]));
+
+        let out = despill(&img, Rgb([255, 128, 128]));
+
+        let px = out.get_pixel(0, 0);
+        assert!((px[0] as i32 - 200).abs() <= 2, "Rot: {px:?}");
+        assert!((px[1] as i32 - 30).abs() <= 2, "Grün: {px:?}");
+        assert_eq!(px[3], 128, "Alpha bleibt unangetastet");
+    }
+
+    #[test]
+    fn deckende_und_leere_pixel_bleiben_unberuehrt() {
+        let mut img = RgbaImage::new(3, 1);
+        img.put_pixel(0, 0, Rgba([200, 30, 30, 255])); // voll deckend
+        img.put_pixel(1, 0, Rgba([255, 128, 128, 0])); // voll transparent
+        img.put_pixel(2, 0, Rgba([250, 126, 126, 2])); // fast transparent
+
+        let out = despill(&img, Rgb([255, 128, 128]));
+
+        assert_eq!(out.get_pixel(0, 0), &Rgba([200, 30, 30, 255]), "deckend bleibt");
+        assert_eq!(out.get_pixel(1, 0), &Rgba([255, 128, 128, 0]), "keine Division durch 0");
+        // Bei alpha 2/255 würde die Division die Farbe ins Absurde ziehen.
+        assert_eq!(out.get_pixel(2, 0), &Rgba([250, 126, 126, 2]), "unter der Schwelle unberührt");
+    }
+
+    /// Rundlauf mit bekannter Wahrheit: ein Motiv mit weicher Kante auf Magenta
+    /// legen, wieder freistellen — und prüfen, dass die Randfarbe zurückkommt.
+    /// Genau dieser Fall ist der Grund für Despill: ohne ihn bliebe der rosa
+    /// Saum in den halbtransparenten Pixeln stehen.
+    #[test]
+    fn rundlauf_ueber_magenta_stellt_die_randfarbe_wieder_her() {
+        let magenta = Rgb([255, 0, 255]);
+
+        // 9x9: deckender roter Block, außen herum ein halbtransparenter Rand.
+        let mut original = RgbaImage::new(9, 9);
+        for y in 2..7 {
+            for x in 2..7 {
+                let rand = x == 2 || x == 6 || y == 2 || y == 6;
+                original.put_pixel(x, y, Rgba([200, 30, 30, if rand { 128 } else { 255 }]));
+            }
+        }
+
+        let auf_magenta = crate::matting::auf_hintergrund(&original, magenta);
+        let tol = Toleranzen { innen: 20.0, aussen: 200.0, loch: 0.0, loch_min: 0 };
+        let maske = hintergrund_maske(&auf_magenta, magenta, tol);
+        let freigestellt = crate::matting::apply_mask_as_alpha(&auf_magenta, &maske);
+        let entfaerbt = despill(&freigestellt, magenta);
+
+        // Kantenpixel: ohne Despill stünde hier die Mischung mit Magenta.
+        let kante = entfaerbt.get_pixel(2, 4);
+        assert!(kante[3] > 0 && kante[3] < 255, "Kante ist halbtransparent: {kante:?}");
+        assert!((kante[0] as i32 - 200).abs() <= 6, "Rot zurückgewonnen: {kante:?}");
+        assert!(kante[2] < 60, "kein Magenta-Saum mehr: {kante:?}");
+
+        // Die Mitte war nie gemischt und muss unverändert sein.
+        assert_eq!(entfaerbt.get_pixel(4, 4), &Rgba([200, 30, 30, 255]));
     }
 }

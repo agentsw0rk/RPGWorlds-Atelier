@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 use diffusion_rs::api::{gen_img, ConfigBuilder, ModelConfigBuilder, SampleMethod};
 use diffusion_rs_sys::{sd_log_level_t, sd_set_log_callback};
 use flux2_rs::matting::auf_hintergrund;
-use flux2_rs::params::{check_multiple_of_16, hex_farbe, ref_image_paths};
+use flux2_rs::params::{check_multiple_of_16, env_flag, hex_farbe, ref_image_paths};
 use std::ffi::{c_char, c_void, CStr};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -129,14 +129,6 @@ fn main() -> Result<()> {
 
 fn env_num<T: std::str::FromStr>(key: &str) -> Option<T> {
     std::env::var(key).ok().and_then(|v| v.parse().ok())
-}
-
-/// Schaltervariable: `0`, `false` und `off` schalten ab, alles andere ein.
-fn env_flag(key: &str, default: bool) -> bool {
-    match std::env::var(key) {
-        Ok(v) => !matches!(v.trim().to_ascii_lowercase().as_str(), "0" | "false" | "off" | "no"),
-        Err(_) => default,
-    }
 }
 
 /// Schwelle für die sd.cpp-Logausgabe: 0 = aus, 1 = ab INFO, 2 = mit DEBUG.
