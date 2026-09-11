@@ -27,13 +27,19 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # die Plastik der Figur kommt dann aus dem Cel-Shading, nicht aus einer
 # gerichteten Lichtquelle. Was doch an Schatten entsteht, entfernt das
 # Farb-Keying beim Freistellen.
+# Zur Kamera: "30-degree elevated three-quarter view" ist eine Fachbeschreibung,
+# kein Begriff aus den Trainingsdaten — das Modell malt darauf meist eine
+# Frontalansicht auf Augenhöhe. Was wirkt, sind geläufige Formulierungen:
+# "high angle" für die Kamerahöhe und "turned three-quarters" für die Drehung
+# der Figur. Beides muss getrennt gesagt werden, sonst kommt nur eins davon.
 STYLE="hand-painted fantasy character illustration, clean dark-brown ink outlines, \
 soft painterly cel shading, matte finish, warm desaturated medieval colors, \
-flat even ambient lighting, isolated asset, 30-degree elevated three-quarter view, \
-full body, realistic proportions, pale 2:1 elliptical sandstone game-piece base, \
-solid mid-grey background"
+flat even ambient lighting, isolated asset, high angle view looking down on the \
+figure from above, tabletop miniature standing on a pale elliptical sandstone base \
+seen from above, full body, realistic proportions, solid mid-grey background"
 
-POSE="calm upright pose, facing viewer slightly left, arms and equipment close to body"
+POSE="calm upright pose, body turned three-quarters away from the viewer, \
+shoulders angled, head turned back toward the viewer, arms and equipment close to body"
 
 # --- Vorgaben für jedes Token -------------------------------------------------
 size=1024

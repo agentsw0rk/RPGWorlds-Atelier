@@ -223,6 +223,27 @@ Negativ-Prompt nie ausgewertet, und `no cast shadow` im Positiv-Prompt kodiert d
 Schatten entsteht, schluckt das Farb-Keying beim Freistellen — `--key-innen 80` nimmt
 mehr davon, falls ein Rest bleibt.
 
+**Zur Kamera.** `STYLE` beschreibt Kamerahöhe und Drehung der Figur **getrennt**, und
+bewusst in geläufigen Worten statt in Fachbegriffen:
+
+* Höhe: `high angle view looking down on the figure from above`
+* Drehung: `body turned three-quarters away from the viewer` (in `POSE`)
+
+`30-degree elevated three-quarter view` stand hier zuerst und hat nicht funktioniert —
+das ist eine Fachbeschreibung, kein Begriff aus den Trainingsdaten. Das Modell malte
+darauf verlässlich eine Frontalansicht auf Augenhöhe: Figur gerade von vorn, Sockel von
+der Seite statt von oben.
+
+Verlässlicher als jede Formulierung ist eine **Referenz**. Liegt schon ein Token mit dem
+richtigen Winkel vor, gib es mit:
+
+```sh
+scripts/token.sh -r tokens/drow-priesterin.png --ref-bg 808080 \
+    "male drow ranger, white hair, twin scimitars"
+```
+
+Der Winkel ist das, was ein Referenzbild am zuverlässigsten überträgt — er steckt in der
+Bildgeometrie und nicht in einer Beschreibung, die das Modell erst deuten muss.
 **Alles andere geht unverändert an `generate-macos.sh`** — und zwar hinter den eigenen
 Vorgaben, sodass deine Angabe gewinnt:
 

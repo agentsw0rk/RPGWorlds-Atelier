@@ -109,6 +109,11 @@ pure, testable half.
 - **`scripts/umgebung.sh`** — sourced by both scripts (not executable on its own): tool
   check, `LIBCLANG_PATH`/`CMAKE_GENERATOR`, thread count, and `bauen()` with the bindgen
   recovery. Changes to the toolchain search belong here, not in a caller.
+- **Camera angle needs plain words, not jargon.** `30-degree elevated three-quarter view`
+  in the token STYLE produced eye-level front views every time. What works is saying the
+  two things separately in common phrasing: `high angle view looking down on the figure`
+  for the camera and `body turned three-quarters away from the viewer` for the pose. A
+  reference image via `-r` transfers the angle far more reliably than any wording.
 - **Three model sets, `--preset`.** A preset pins the diffusion model **and** its text
   encoder together: `klein-4b` (Qwen3-4B), `klein-9b` (Qwen3-8B, distilled GGUF) and
   `klein-base-9b` (Qwen3-8B, non-distilled fp8, gated). The 9B checkpoints ship a ~8B
