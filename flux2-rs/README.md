@@ -240,6 +240,27 @@ Wenn trotzdem etwas verdreht ist, in dieser Reihenfolge:
 3. **Neu würfeln.** `--seeds 5 --seed -1` und das beste nehmen. Hände und Füße sind zu
    einem guten Teil Glückssache, kein Prompt beseitigt das ganz.
 * Höhe: `high angle view looking down on the figure from above`
+
+**Gegen den kindlichen Eindruck.** Eine Verneinung hilft nicht — `not chibi` kodiert
+*chibi*, wie `no cast shadow` den Schatten kodiert. Was Figuren kindlich wirken lässt, ist
+das **Kopf-Körper-Verhältnis**: ein großer Kopf auf kurzem Körper. Deshalb steht die Zahl
+ausdrücklich im Stil:
+
+```
+grounded adult proportions about seven and a half heads tall,
+head small relative to the body,
+mature adult face with defined cheekbones and jaw
+```
+
+Sieben bis siebeneinhalb Kopfhöhen sind erwachsene Proportionen, fünf bis sechs wirken
+jugendlich, drei bis vier sind Chibi. Die Gesichtszüge sind der zweite Hebel: definierte
+Wangenknochen und Kiefer statt weicher runder Formen.
+
+**Vorsicht bei den kleinen Völkern und den Kindern in der Liste.** Halblinge, Gnome und
+die Kinder-Einträge (`kind-mit-stock`, `zwillinge-hand-in-hand`, `novize-lichtlein`) sollen
+gerade *nicht* siebeneinhalb Kopfhöhen haben. Ihre Zeile steht im Prompt vorn und wiegt
+schwerer, das reicht meist. Wo es nicht reicht, hilft `--style` mit einer angepassten
+Fassung für diese wenigen Figuren.
 * Drehung: `body turned three-quarters away from the viewer` (in `POSE`)
 
 `30-degree elevated three-quarter view` stand hier zuerst und hat nicht funktioniert —

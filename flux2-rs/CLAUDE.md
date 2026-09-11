@@ -109,6 +109,11 @@ pure, testable half.
 - **`scripts/umgebung.sh`** — sourced by both scripts (not executable on its own): tool
   check, `LIBCLANG_PATH`/`CMAKE_GENERATOR`, thread count, and `bauen()` with the bindgen
   recovery. Changes to the toolchain search belong here, not in a caller.
+- **"Childish" is fixed by head-to-body ratio, not by negation.** `not chibi` encodes
+  *chibi*. The token STYLE states the number instead — `about seven and a half heads tall,
+  head small relative to the body, mature adult face with defined cheekbones and jaw`.
+  Watch the small folk and the child entries in `charaktere.txt`: their character line
+  leads the prompt and usually wins, but `--style` is the escape hatch for those few.
 - **A turned pose costs anatomy.** Feet and hands break first in diffusion models, and a
   twisted torso with the head counter-rotated is the hardest case — reversed boots are the
   usual result. The token POSE turns the head *with* the body and names the feet

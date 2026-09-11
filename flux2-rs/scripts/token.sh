@@ -1,42 +1,78 @@
 #!/usr/bin/env bash
+#!/usr/bin/env bash
+#
 #
 # Charakter-Token für die Asset-Bibliothek erzeugen.
+# Charakter-Token für die Asset-Bibliothek erzeugen.
+#
 #
 # Stil und Pose stehen hier fest, damit jedes Token derselben Kunstrichtung folgt —
+# Stil und Pose stehen hier fest, damit jedes Token derselben Kunstrichtung folgt —
+# eine Variable statt Copy-Paste ist die einzige Art, einen Prompt über viele Läufe
 # eine Variable statt Copy-Paste ist die einzige Art, einen Prompt über viele Läufe
 # hinweg wirklich zeichengenau gleich zu halten. Von außen kommt nur der Charakter.
+# hinweg wirklich zeichengenau gleich zu halten. Von außen kommt nur der Charakter.
+#
 #
 #   scripts/token.sh "female human warrior, weathered steel plate armor, longsword"
+#   scripts/token.sh "female human warrior, weathered steel plate armor, longsword"
+#   scripts/token.sh --seeds 5 --seed -1 "dwarf cleric, dark iron mail, warhammer"
 #   scripts/token.sh --seeds 5 --seed -1 "dwarf cleric, dark iron mail, warhammer"
 #
+#
+# Alles, was dieses Script nicht selbst kennt, reicht es unverändert an
 # Alles, was dieses Script nicht selbst kennt, reicht es unverändert an
 # generate-macos.sh weiter und zwar *nach* den eigenen Vorgaben — dadurch
+# generate-macos.sh weiter und zwar *nach* den eigenen Vorgaben — dadurch
+# gewinnt deine Angabe: `scripts/token.sh -s 512 "..."` überschreibt die 1024.
 # gewinnt deine Angabe: `scripts/token.sh -s 512 "..."` überschreibt die 1024.
 #
+#
+# Bewusst nur POSIX-nahe Bash-Konstrukte: macOS liefert bis heute Bash 3.2 aus.
 # Bewusst nur POSIX-nahe Bash-Konstrukte: macOS liefert bis heute Bash 3.2 aus.
 set -euo pipefail
+set -euo pipefail
+
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 
 # --- Kunstrichtung: ändern heißt, die Bibliothek neu zu beginnen ---------------
+# --- Kunstrichtung: ändern heißt, die Bibliothek neu zu beginnen ---------------
+#
 #
 # Zum Licht: "soft upper-left lighting" erzeugt zuverlässig auch einen
+# Zum Licht: "soft upper-left lighting" erzeugt zuverlässig auch einen
+# Schlagschatten auf dem Boden. Eine Verneinung hilft dagegen nicht — bei
 # Schlagschatten auf dem Boden. Eine Verneinung hilft dagegen nicht — bei
 # cfg_scale 1.0 gibt es keinen Negativ-Prompt, und "no cast shadow" kodiert im
+# cfg_scale 1.0 gibt es keinen Negativ-Prompt, und "no cast shadow" kodiert im
+# Positiv-Prompt das Wort *shadow*. Der Weg ist, flaches Licht zu verlangen:
 # Positiv-Prompt das Wort *shadow*. Der Weg ist, flaches Licht zu verlangen:
 # die Plastik der Figur kommt dann aus dem Cel-Shading, nicht aus einer
+# die Plastik der Figur kommt dann aus dem Cel-Shading, nicht aus einer
 # gerichteten Lichtquelle. Was doch an Schatten entsteht, entfernt das
+# gerichteten Lichtquelle. Was doch an Schatten entsteht, entfernt das
+# Farb-Keying beim Freistellen.
 # Farb-Keying beim Freistellen.
 # Zur Kamera: "30-degree elevated three-quarter view" ist eine Fachbeschreibung,
 # kein Begriff aus den Trainingsdaten — das Modell malt darauf meist eine
 # Frontalansicht auf Augenhöhe. Was wirkt, sind geläufige Formulierungen:
 # "high angle" für die Kamerahöhe und "turned three-quarters" für die Drehung
 # der Figur. Beides muss getrennt gesagt werden, sonst kommt nur eins davon.
+#
+# Gegen den kindlichen Eindruck hilft keine Verneinung ("not chibi" kodiert
+# *chibi*), sondern das Kopf-Körper-Verhältnis: ein großer Kopf auf kurzem
+# Körper ist das, was Figuren kindlich wirken lässt. Deshalb steht die
+# Kopfhöhenzahl ausdrücklich im Stil, dazu erwachsene Gesichtszüge.
 STYLE="hand-painted fantasy character illustration, clean dark-brown ink outlines, \
 soft painterly cel shading, matte finish, warm desaturated medieval colors, \
 flat even ambient lighting, isolated asset, high angle view looking down on the \
 figure from above, tabletop miniature standing on a pale elliptical sandstone base \
-seen from above, full body, realistic proportions, solid mid-grey background"
+seen from above, full body, grounded adult proportions about seven and a half heads \
+tall, head small relative to the body, mature adult face with defined cheekbones and \
+jaw, solid mid-grey background"
 
 # Zur Pose: die Drehung kostet Anatomie. Ein verdrehter Rumpf mit zurück-
 # gedrehtem Kopf ist für das Modell der schwerste Fall, und es bricht zuerst an
