@@ -158,7 +158,7 @@ pub fn hintergrund_maske(rgb: &RgbImage, key: image::Rgb<u8>, tol: Toleranzen) -
             lokal.push_back((x, y));
             while let Some((lx, ly)) = lokal.pop_front() {
                 flaeche.push((lx, ly));
-                let mut nachbar = |nx: u32, ny: u32, lokal: &mut std::collections::VecDeque<(u32, u32)>, besucht: &mut Vec<bool>| {
+                let nachbar = |nx: u32, ny: u32, lokal: &mut std::collections::VecDeque<(u32, u32)>, besucht: &mut Vec<bool>| {
                     if !besucht[index(nx, ny)] && abstand(nx, ny) <= loch {
                         besucht[index(nx, ny)] = true;
                         lokal.push_back((nx, ny));

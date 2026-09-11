@@ -24,6 +24,25 @@ pub fn ref_image_paths(raw: &str) -> Result<Vec<PathBuf>> {
     Ok(paths)
 }
 
+/// Wertet eine Schaltervariable aus: `0`, `false`, `off` und `no` schalten ab.
+///
+/// Getrennt von der Umgebung, damit es ohne Seiteneffekte testbar bleibt —
+/// Tests laufen parallel, und `std::env::set_var` wäre zwischen ihnen geteilt.
+pub fn flag_wert(wert: Option<&str>, default: bool) -> bool {
+    match wert {
+        Some(v) => !matches!(
+            v.trim().to_ascii_lowercase().as_str(),
+            "0" | "false" | "off" | "no"
+        ),
+        None => default,
+    }
+}
+
+/// Wie [`flag_wert`], liest den Wert aber aus der Umgebung.
+pub fn env_flag(key: &str, default: bool) -> bool {
+    flag_wert(std::env::var(key).ok().as_deref(), default)
+}
+
 /// Stellt sicher, dass eine Kantenlänge durch 16 teilbar ist.
 ///
 /// FLUX.2 arbeitet im Latent-Raum mit Faktor 16; krumme Werte lehnt das Modell ab.
@@ -128,5 +147,15 @@ mod tests {
         // Lieber abbrechen als still auf Schwarz zurückfallen — genau das ist ja der Bug.
         assert!(hex_farbe("weiss").is_err());
         assert!(hex_farbe("fff").is_err());
+    }
+
+    #[test]
+    fn schaltervariablen_werden_gelesen() {
+        assert!(!flag_wert(Some("0"), true));
+        assert!(!flag_wert(Some("false"), true));
+        assert!(!flag_wert(Some(" OFF "), true));
+        assert!(flag_wert(Some("1"), false));
+        assert!(flag_wert(None, true), "ohne Angabe gilt der Default");
+        assert!(!flag_wert(None, false));
     }
 }
