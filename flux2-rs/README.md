@@ -226,6 +226,19 @@ mehr davon, falls ein Rest bleibt.
 **Zur Kamera.** `STYLE` beschreibt Kamerahöhe und Drehung der Figur **getrennt**, und
 bewusst in geläufigen Worten statt in Fachbegriffen:
 
+**Zur Anatomie.** Hände und Füße brechen bei Diffusionsmodellen zuerst, und eine gedrehte
+Pose macht es schlimmer: ein verdrehter Rumpf mit zurückgedrehtem Kopf ist der schwerste
+Fall, verdrehte Stiefel sind die häufigste Folge. `POSE` dreht den Kopf deshalb **mit**
+dem Körper statt dagegen und benennt die Füße ausdrücklich — was im Prompt steht,
+platziert das Modell bewusst.
+
+Wenn trotzdem etwas verdreht ist, in dieser Reihenfolge:
+
+1. **Mehr Steps.** `--steps 12` bis `16`. Vier Steps sind das Minimum des distillierten
+   Modells; zusammenhängende Gliedmaßen sind das Erste, was von mehr Schritten profitiert.
+2. **Größeres Modell.** `--preset klein-9b`.
+3. **Neu würfeln.** `--seeds 5 --seed -1` und das beste nehmen. Hände und Füße sind zu
+   einem guten Teil Glückssache, kein Prompt beseitigt das ganz.
 * Höhe: `high angle view looking down on the figure from above`
 * Drehung: `body turned three-quarters away from the viewer` (in `POSE`)
 

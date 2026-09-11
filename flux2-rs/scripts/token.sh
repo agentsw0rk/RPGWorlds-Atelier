@@ -38,8 +38,15 @@ flat even ambient lighting, isolated asset, high angle view looking down on the 
 figure from above, tabletop miniature standing on a pale elliptical sandstone base \
 seen from above, full body, realistic proportions, solid mid-grey background"
 
-POSE="calm upright pose, body turned three-quarters away from the viewer, \
-shoulders angled, head turned back toward the viewer, arms and equipment close to body"
+# Zur Pose: die Drehung kostet Anatomie. Ein verdrehter Rumpf mit zurück-
+# gedrehtem Kopf ist für das Modell der schwerste Fall, und es bricht zuerst an
+# Händen und Füßen — verdrehte Stiefel sind die häufigste Folge. Deshalb dreht
+# sich der Kopf jetzt mit dem Körper statt dagegen, und die Füße werden
+# ausdrücklich benannt: was im Prompt steht, platziert das Modell bewusst.
+POSE="calm upright pose, body turned three-quarters to the left, \
+head facing the same way as the body, standing evenly on both feet, \
+both boots flat on the base and pointing the same way as the body, \
+arms and equipment close to body"
 
 # --- Vorgaben für jedes Token -------------------------------------------------
 size=1024

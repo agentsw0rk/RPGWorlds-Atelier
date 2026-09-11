@@ -109,6 +109,10 @@ pure, testable half.
 - **`scripts/umgebung.sh`** — sourced by both scripts (not executable on its own): tool
   check, `LIBCLANG_PATH`/`CMAKE_GENERATOR`, thread count, and `bauen()` with the bindgen
   recovery. Changes to the toolchain search belong here, not in a caller.
+- **A turned pose costs anatomy.** Feet and hands break first in diffusion models, and a
+  twisted torso with the head counter-rotated is the hardest case — reversed boots are the
+  usual result. The token POSE turns the head *with* the body and names the feet
+  explicitly; more steps (12-16) and a re-rolled seed are the other levers.
 - **Camera angle needs plain words, not jargon.** `30-degree elevated three-quarter view`
   in the token STYLE produced eye-level front views every time. What works is saying the
   two things separately in common phrasing: `high angle view looking down on the figure`
