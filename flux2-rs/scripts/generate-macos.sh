@@ -107,7 +107,9 @@ Transparenz (Freistellen mit u2netp):
                         Flutfüllung durch helle Hauttöne und macht Löcher.
       --key-loch N      Eingeschlossene Flächen (Lücke zwischen den Beinen, Zwickel
                         zwischen Arm und Rumpf) bis zu diesem Farbabstand ebenfalls
-                        entfernen (Default: 30). 0 schaltet es ab.
+                        entfernen (Default: 12). 0 schaltet es ab. Höher zu setzen ist
+                        riskant: auf den Sockel gemalte Schatten liegen nah an der
+                        Hintergrundfarbe und werden dann mit weggeschnitten.
       --key-loch-min N  Mindestfläche einer solchen Lücke in Pixeln (Default: 500).
                         Verhindert, dass Glanzlichter auf Stahl — die zufällig
                         Hintergrundfarbe haben — die Rüstung durchlöchern.

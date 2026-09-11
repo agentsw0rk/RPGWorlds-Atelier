@@ -30,8 +30,11 @@ pub struct Toleranzen {
 
 impl Default for Toleranzen {
     fn default() -> Self {
-        // Gemessen an generierten Tokens auf mittelgrauem Grund.
-        Self { innen: 70.0, aussen: 95.0, loch: 30.0, loch_min: 500 }
+        // Gemessen an generierten Tokens auf mittelgrauem Grund. `loch` ist
+        // bewusst eng: eine echte Lücke zeigt den Hintergrund selbst und trifft
+        // dessen Farbe fast exakt, während auf den Sockel gemalte Schatten nur
+        // in der Nähe liegen. Bei 30 fraß die Lochsuche diese Schatten weg.
+        Self { innen: 70.0, aussen: 95.0, loch: 12.0, loch_min: 500 }
     }
 }
 
@@ -339,5 +342,55 @@ mod tests {
 
         assert_eq!(maske.get_pixel(3, 3)[0], 255, "Einzelpixel bleibt deckend");
         assert_eq!(maske.get_pixel(5, 5)[0], 0, "die 2x2-Lücke wird transparent");
+    }
+
+    #[test]
+    fn gemalter_schatten_auf_dem_motiv_wird_kein_loch() {
+        // Auf dem Sockel gemalte graue Schatten liegen nah an der
+        // Hintergrundfarbe, sind aber Teil der Figur. Ein echtes Loch zeigt
+        // dagegen den Hintergrund selbst und trifft dessen Farbe exakt.
+        // Gemessen an einem 1024er Token: der gemalte Schatten lag ~25 daneben,
+        // die Lücke zwischen den Beinen bei 0.
+        let key = Rgb([164, 164, 162]);
+        let mut img = RgbImage::from_pixel(60, 60, key);
+        for y in 5..55 {
+            for x in 5..55 {
+                img.put_pixel(x, y, Rgb([232, 222, 208])); // heller Sockel
+            }
+        }
+        // Eingeschlossener gemalter Schatten: 25 vom Hintergrund entfernt und mit
+        // 900 Pixeln deutlich über der Mindestfläche — nur die Farbschwelle
+        // kann ihn noch retten.
+        for y in 15..45 {
+            for x in 15..45 {
+                img.put_pixel(x, y, Rgb([178, 178, 176]));
+            }
+        }
+
+        let maske = hintergrund_maske(&img, key, Toleranzen::default());
+
+        assert_eq!(maske.get_pixel(30, 30)[0], 255, "gemalter Schatten bleibt deckend");
+        assert_eq!(maske.get_pixel(0, 0)[0], 0, "der echte Hintergrund geht weg");
+    }
+
+    #[test]
+    fn echte_luecke_in_hintergrundfarbe_verschwindet_weiterhin() {
+        let key = Rgb([164, 164, 162]);
+        let mut img = RgbImage::from_pixel(60, 60, key);
+        for y in 5..55 {
+            for x in 5..55 {
+                img.put_pixel(x, y, Rgb([232, 222, 208]));
+            }
+        }
+        // Eingeschlossene Lücke, exakt Hintergrundfarbe, groß genug.
+        for y in 20..45 {
+            for x in 20..45 {
+                img.put_pixel(x, y, key);
+            }
+        }
+
+        let maske = hintergrund_maske(&img, key, Toleranzen::default());
+
+        assert_eq!(maske.get_pixel(32, 32)[0], 0, "die Lücke wird transparent");
     }
 }

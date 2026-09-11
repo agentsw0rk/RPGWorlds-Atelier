@@ -153,10 +153,12 @@ pure, testable half.
 - **Border-seeded keying alone leaves gaps opaque.** The flood fill starts at the image
   border, so a gap between the legs that the base closes off below is never reached.
   `src/keying.rs` therefore runs a second pass over enclosed areas, gated by **two**
-  conditions: near-exact background colour (`KEY_LOCH`, 30) *and* a minimum area
-  (`KEY_LOCH_MIN`, 500 px). Both are needed — measured on a 1024² token: with the colour
+  conditions: near-exact background colour (`KEY_LOCH`, 12) *and* a minimum area
+  (`KEY_LOCH_MIN`, 500 px). Both are needed — measured on 1024² tokens: with the colour
   test alone, steel highlights (which hit the grey background colour exactly) punch holes
-  through beard, armour and base.
+  through beard, armour and base. The colour threshold has to stay tight: at 30, grey
+  shading painted onto a pale stone base counted as background and was cut out. A real gap
+  shows the background itself and matches its colour almost exactly.
   `img.to_rgb8()` (`api.rs`), which drops the alpha channel — a transparent PNG (e.g. a
   token this pipeline produced earlier) reaches the model as a subject on **black**.
   `src/main.rs` therefore composites any ref with alpha onto `REF_BG` (default `ffffff`)

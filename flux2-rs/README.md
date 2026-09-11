@@ -126,7 +126,7 @@ weg. Wichtigste Optionen, `--help` zeigt alle:
 | `--key` | aus | Freistellen über die Hintergrundfarbe statt über u2netp — behält den Sockel |
 | `--key-color HEX` | – | Hintergrundfarbe vorgeben statt vom Rand lesen |
 | `--key-innen` / `--key-aussen` | `70` / `95` | Toleranzband des Keyings |
-| `--key-loch` / `--key-loch-min` | `30` / `500` | eingeschlossene Lücken (zwischen den Beinen, Arm/Rumpf) |
+| `--key-loch` / `--key-loch-min` | `12` / `500` | eingeschlossene Lücken (zwischen den Beinen, Arm/Rumpf) |
 | `--quiet` / `--debug` | – | sd.cpp-Log aus bzw. mit DEBUG-Zeilen |
 | `--cutoff N` | `12` | Alpha ≤ N gilt als Hintergrund |
 | `--quant Q` | `Q5_K_M` | Quantisierung der beiden großen Modelle |
@@ -283,7 +283,7 @@ BG_KEY=808080 ./target/release/matte bild.png transparent.png
 | `BG_KEY` | – | `auto` oder `rrggbb`; ungesetzt = u2netp |
 | `KEY_INNEN` | `70` | Farbabstand, bis zu dem ein Pixel reiner Hintergrund ist |
 | `KEY_AUSSEN` | `95` | Farbabstand, ab dem ein Pixel Motiv ist |
-| `KEY_LOCH` | `30` | eingeschlossene Flächen bis zu diesem Abstand ebenfalls entfernen; `0` = aus |
+| `KEY_LOCH` | `12` | eingeschlossene Flächen bis zu diesem Abstand ebenfalls entfernen; `0` = aus |
 | `KEY_LOCH_MIN` | `500` | Mindestfläche einer solchen Lücke in Pixeln |
 
 Zwischen beiden Werten wird weich übergeblendet — ein harter Schwellwert gäbe
@@ -298,7 +298,9 @@ Beinen ist von dort aber nicht erreichbar, wenn der Sockel sie unten schließt. 
 Durchgang sucht deshalb eingeschlossene Flächen. Er braucht **zwei** Bedingungen, weil
 eine nicht reicht:
 
-* nahezu exakte Hintergrundfarbe (`KEY_LOCH`, Default 30) — sonst bekämen dunkle Flächen Löcher, und
+* nahezu exakte Hintergrundfarbe (`KEY_LOCH`, Default 12) — eine echte Lücke zeigt den
+  Hintergrund selbst und trifft dessen Farbe fast exakt, während auf den Sockel gemalte
+  Schatten nur in der Nähe liegen, und
 * eine Mindestgröße (`KEY_LOCH_MIN`, Default 500 px) — sonst trifft es die Glanzlichter auf
   Stahl, die im mittelgrauen Stil zufällig genau die Hintergrundfarbe haben.
 
