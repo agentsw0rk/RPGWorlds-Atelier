@@ -63,6 +63,7 @@ key_innen=""
 key_aussen=""
 key_loch=""
 key_loch_min=""
+despill=1            # Farbsaum aus den Randpixeln herausrechnen
 
 usage() {
     cat <<'USAGE'
@@ -111,6 +112,10 @@ Transparenz (Freistellen mit u2netp):
       --key-loch-min N  Mindestfläche einer solchen Lücke in Pixeln (Default: 500).
                         Verhindert, dass Glanzlichter auf Stahl — die zufällig
                         Hintergrundfarbe haben — die Rüstung durchlöchern.
+      --no-despill      Den Farbsaum in den Randpixeln stehen lassen. Weiche Kanten
+                        sind Mischungen aus Motiv und Hintergrund; Despill rechnet
+                        den Hintergrundanteil heraus. Bei grauem Grund kaum sichtbar,
+                        bei gesättigtem Keying-Hintergrund entscheidend.
       --cutoff N        Alpha <= N wird hart auf 0 gezogen (Default: 12)
       --out-w N         Nur zusammen mit --out-h: auf das Motiv zuschneiden und
       --out-h N         in eine Fläche dieser Größe einpassen (z. B. VTT-Token).
@@ -199,6 +204,7 @@ while [ $# -gt 0 ]; do
         --key-aussen)    require_float "--key-aussen" "$2"; key_aussen="$2"; shift 2 ;;
         --key-loch)      require_float "--key-loch" "$2";   key_loch="$2"; shift 2 ;;
         --key-loch-min)  require_number "--key-loch-min" "$2"; key_loch_min="$2"; shift 2 ;;
+        --no-despill)    despill=0; shift ;;
         --cfg)           require_float "--cfg" "$2"; cfg_scale="$2"; shift 2 ;;
         --guidance)      require_float "--guidance" "$2"; guidance="$2"; shift 2 ;;
         --quiet)         log_level=0; shift ;;
@@ -324,7 +330,7 @@ erzeuge() {
         say "Freistellen (Hintergrund wird alpha = 0)"
         MODEL="$u2netp" CUTOFF="$cutoff" \
         BG_KEY="$bg_key" KEY_INNEN="$key_innen" KEY_AUSSEN="$key_aussen" \
-        KEY_LOCH="$key_loch" KEY_LOCH_MIN="$key_loch_min" \
+        KEY_LOCH="$key_loch" KEY_LOCH_MIN="$key_loch_min" DESPILL="$despill" \
         OUT_W="${out_w:-}" OUT_H="${out_h:-}" \
             "$bin_matte" "$roh" "$ziel" || return 1
         echo

@@ -158,6 +158,12 @@ pure, testable half.
   test alone, steel highlights (which hit the grey background colour exactly) punch holes
   through beard, armour and base.
   `img.to_rgb8()` (`api.rs`), which drops the alpha channel — a transparent PNG (e.g. a
+- **Despill runs by default when keying.** Soft edges are blends of subject and background;
+  `keying::despill` inverts `c = a·fg + (1-a)·key` per semi-transparent pixel, leaving
+  anything below 3 % alpha alone. Only possible with `BG_KEY` — u2netp never learns a
+  background colour. `DESPILL=0` turns it off. This is what makes a saturated key colour
+  (magenta, chroma green) viable at all; without it a coloured fringe survives in the alpha
+  edge of every token.
   token this pipeline produced earlier) reaches the model as a subject on **black**.
   `src/main.rs` therefore composites any ref with alpha onto `REF_BG` (default `ffffff`)
   into a temp file first; `matting::auf_hintergrund` does the blend and is unit-tested.

@@ -395,4 +395,37 @@ mod tests {
         // Bei alpha 2/255 würde die Division die Farbe ins Absurde ziehen.
         assert_eq!(out.get_pixel(2, 0), &Rgba([250, 126, 126, 2]), "unter der Schwelle unberührt");
     }
+
+    /// Rundlauf mit bekannter Wahrheit: ein Motiv mit weicher Kante auf Magenta
+    /// legen, wieder freistellen — und prüfen, dass die Randfarbe zurückkommt.
+    /// Genau dieser Fall ist der Grund für Despill: ohne ihn bliebe der rosa
+    /// Saum in den halbtransparenten Pixeln stehen.
+    #[test]
+    fn rundlauf_ueber_magenta_stellt_die_randfarbe_wieder_her() {
+        let magenta = Rgb([255, 0, 255]);
+
+        // 9x9: deckender roter Block, außen herum ein halbtransparenter Rand.
+        let mut original = RgbaImage::new(9, 9);
+        for y in 2..7 {
+            for x in 2..7 {
+                let rand = x == 2 || x == 6 || y == 2 || y == 6;
+                original.put_pixel(x, y, Rgba([200, 30, 30, if rand { 128 } else { 255 }]));
+            }
+        }
+
+        let auf_magenta = crate::matting::auf_hintergrund(&original, magenta);
+        let tol = Toleranzen { innen: 20.0, aussen: 200.0, loch: 0.0, loch_min: 0 };
+        let maske = hintergrund_maske(&auf_magenta, magenta, tol);
+        let freigestellt = crate::matting::apply_mask_as_alpha(&auf_magenta, &maske);
+        let entfaerbt = despill(&freigestellt, magenta);
+
+        // Kantenpixel: ohne Despill stünde hier die Mischung mit Magenta.
+        let kante = entfaerbt.get_pixel(2, 4);
+        assert!(kante[3] > 0 && kante[3] < 255, "Kante ist halbtransparent: {kante:?}");
+        assert!((kante[0] as i32 - 200).abs() <= 6, "Rot zurückgewonnen: {kante:?}");
+        assert!(kante[2] < 60, "kein Magenta-Saum mehr: {kante:?}");
+
+        // Die Mitte war nie gemischt und muss unverändert sein.
+        assert_eq!(entfaerbt.get_pixel(4, 4), &Rgba([200, 30, 30, 255]));
+    }
 }

@@ -127,6 +127,7 @@ weg. Wichtigste Optionen, `--help` zeigt alle:
 | `--key-color HEX` | – | Hintergrundfarbe vorgeben statt vom Rand lesen |
 | `--key-innen` / `--key-aussen` | `70` / `95` | Toleranzband des Keyings |
 | `--key-loch` / `--key-loch-min` | `30` / `500` | eingeschlossene Lücken (zwischen den Beinen, Arm/Rumpf) |
+| `--no-despill` | – | Farbsaum in den Randpixeln stehen lassen |
 | `--quiet` / `--debug` | – | sd.cpp-Log aus bzw. mit DEBUG-Zeilen |
 | `--cutoff N` | `12` | Alpha ≤ N gilt als Hintergrund |
 | `--quant Q` | `Q5_K_M` | Quantisierung der beiden großen Modelle |
@@ -285,6 +286,7 @@ BG_KEY=808080 ./target/release/matte bild.png transparent.png
 | `KEY_AUSSEN` | `95` | Farbabstand, ab dem ein Pixel Motiv ist |
 | `KEY_LOCH` | `30` | eingeschlossene Flächen bis zu diesem Abstand ebenfalls entfernen; `0` = aus |
 | `KEY_LOCH_MIN` | `500` | Mindestfläche einer solchen Lücke in Pixeln |
+| `DESPILL` | `1` | Farbsaum aus den Randpixeln herausrechnen |
 
 Zwischen beiden Werten wird weich übergeblendet — ein harter Schwellwert gäbe
 Treppenkanten an jeder weich gemalten Silhouette.
@@ -309,6 +311,17 @@ höher zu setzen schluckt mehr vom weichen Schlagschatten; `KEY_AUSSEN` deutlich
 ist riskant — ab etwa 98 wird helle Haut durchlässig, und die Füllung schlägt Löcher ins
 Gesicht.
 
+**Despill.** Weiche Kanten sind Mischungen: `c = a·Motiv + (1-a)·Hintergrund`. Bleibt die
+Mischung stehen, umgibt ein Saum in Hintergrundfarbe die Figur. Auf mittelgrauem Grund
+fällt das kaum auf — mit einem gesättigten Keying-Hintergrund wäre es ein sichtbarer
+Farbrand auf jeder dunklen Karte. `matte` stellt die Formel deshalb nach dem Motiv um und
+rechnet den Hintergrundanteil aus jedem halbtransparenten Pixel heraus. Pixel unter 3 %
+Deckung bleiben unberührt, dort verstärkt die Division nur noch Rauschen. `DESPILL=0`
+schaltet es ab.
+
+Damit ist der Wechsel auf einen auffälligen Hintergrund (Magenta, Keying-Grün) gefahrlos
+möglich: er macht die Maske eindeutig, und der Saum, der sonst dagegen spräche, wird
+herausgerechnet.
 Fehlt im Ergebnis etwas, das dabei sein sollte, zeigt `MASK_OUT` warum:
 
 ```sh
