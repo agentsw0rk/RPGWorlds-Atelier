@@ -104,11 +104,19 @@ pure, testable half.
   missing `REF` path is a hard error because `diffusion-rs` would otherwise skip it
   silently and run for minutes without the reference.
 - **`scripts/build.sh`** — build only, nothing else: `--tests` runs the fast unit tests
-  first, `--clean` wipes `target/`. Use it after editing `src/*.rs`; `generate-macos.sh`
-  only builds when a binary is missing or `--rebuild` is given.
+  first, `--clean` wipes `target/`. `generate-macos.sh` now builds unconditionally before
+  every run (cargo no-ops when nothing changed), so `--rebuild` is a no-op kept only for
+  old invocations; use `build.sh` when you want to build without generating.
 - **`scripts/umgebung.sh`** — sourced by both scripts (not executable on its own): tool
   check, `LIBCLANG_PATH`/`CMAKE_GENERATOR`, thread count, and `bauen()` with the bindgen
   recovery. Changes to the toolchain search belong here, not in a caller.
+- **Model directory resolution must agree across entry points.** `standard_modelle()` in
+  `umgebung.sh` picks `<project>/models` (sibling of this repo) if it exists, else
+  `<repo>/models`; both `generate-macos.sh` and `token.sh` call it for their default. They
+  used to disagree — `generate-macos.sh` always defaulted to `<repo>/models` while
+  `token.sh` preferred the sibling — which silently downloaded the same multi-GB weights
+  into two places depending on which script was invoked directly. Fixed by centralizing
+  the lookup; don't reintroduce a second copy of this logic.
 - **"Childish" is fixed by head-to-body ratio, not by negation.** `not chibi` encodes
   *chibi*. The token STYLE states the number instead — `about seven and a half heads tall,
   head small relative to the body, mature adult face with defined cheekbones and jaw`.

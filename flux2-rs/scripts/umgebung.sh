@@ -87,3 +87,19 @@ bauen() {
     fi
     rm -f "$build_log"
 }
+
+# Modellverzeichnis, wenn weder MODELS_DIR noch --models gesetzt sind: erst
+# neben dem Projekt suchen (dort liegen sie bei geteiltem Checkout oder einem
+# Container-Mount), sonst im Repo selbst. $1 = Repo-Wurzel.
+#
+# Beide Aufrufer müssen sich hier einig sein — sonst landen Modelle, je
+# nachdem ob man generate-macos.sh oder token.sh direkt aufruft, in zwei
+# verschiedenen Verzeichnissen und werden doppelt heruntergeladen.
+standard_modelle() {
+    wurzel="$1"
+    if [ -d "$wurzel/../models" ]; then
+        (cd "$wurzel/../models" && pwd)
+    else
+        echo "$wurzel/models"
+    fi
+}

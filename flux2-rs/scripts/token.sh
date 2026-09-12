@@ -1,61 +1,33 @@
 #!/usr/bin/env bash
-#!/usr/bin/env bash
-#
 #
 # Charakter-Token für die Asset-Bibliothek erzeugen.
-# Charakter-Token für die Asset-Bibliothek erzeugen.
-#
 #
 # Stil und Pose stehen hier fest, damit jedes Token derselben Kunstrichtung folgt —
-# Stil und Pose stehen hier fest, damit jedes Token derselben Kunstrichtung folgt —
-# eine Variable statt Copy-Paste ist die einzige Art, einen Prompt über viele Läufe
 # eine Variable statt Copy-Paste ist die einzige Art, einen Prompt über viele Läufe
 # hinweg wirklich zeichengenau gleich zu halten. Von außen kommt nur der Charakter.
-# hinweg wirklich zeichengenau gleich zu halten. Von außen kommt nur der Charakter.
-#
 #
 #   scripts/token.sh "female human warrior, weathered steel plate armor, longsword"
-#   scripts/token.sh "female human warrior, weathered steel plate armor, longsword"
-#   scripts/token.sh --seeds 5 --seed -1 "dwarf cleric, dark iron mail, warhammer"
 #   scripts/token.sh --seeds 5 --seed -1 "dwarf cleric, dark iron mail, warhammer"
 #
-#
-# Alles, was dieses Script nicht selbst kennt, reicht es unverändert an
 # Alles, was dieses Script nicht selbst kennt, reicht es unverändert an
 # generate-macos.sh weiter und zwar *nach* den eigenen Vorgaben — dadurch
-# generate-macos.sh weiter und zwar *nach* den eigenen Vorgaben — dadurch
-# gewinnt deine Angabe: `scripts/token.sh -s 512 "..."` überschreibt die 1024.
 # gewinnt deine Angabe: `scripts/token.sh -s 512 "..."` überschreibt die 1024.
 #
-#
-# Bewusst nur POSIX-nahe Bash-Konstrukte: macOS liefert bis heute Bash 3.2 aus.
 # Bewusst nur POSIX-nahe Bash-Konstrukte: macOS liefert bis heute Bash 3.2 aus.
 set -euo pipefail
-set -euo pipefail
-
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
 
 # --- Kunstrichtung: ändern heißt, die Bibliothek neu zu beginnen ---------------
-# --- Kunstrichtung: ändern heißt, die Bibliothek neu zu beginnen ---------------
-#
 #
 # Zum Licht: "soft upper-left lighting" erzeugt zuverlässig auch einen
-# Zum Licht: "soft upper-left lighting" erzeugt zuverlässig auch einen
-# Schlagschatten auf dem Boden. Eine Verneinung hilft dagegen nicht — bei
 # Schlagschatten auf dem Boden. Eine Verneinung hilft dagegen nicht — bei
 # cfg_scale 1.0 gibt es keinen Negativ-Prompt, und "no cast shadow" kodiert im
-# cfg_scale 1.0 gibt es keinen Negativ-Prompt, und "no cast shadow" kodiert im
-# Positiv-Prompt das Wort *shadow*. Der Weg ist, flaches Licht zu verlangen:
 # Positiv-Prompt das Wort *shadow*. Der Weg ist, flaches Licht zu verlangen:
 # die Plastik der Figur kommt dann aus dem Cel-Shading, nicht aus einer
-# die Plastik der Figur kommt dann aus dem Cel-Shading, nicht aus einer
-# gerichteten Lichtquelle. Was doch an Schatten entsteht, entfernt das
 # gerichteten Lichtquelle. Was doch an Schatten entsteht, entfernt das
 # Farb-Keying beim Freistellen.
-# Farb-Keying beim Freistellen.
+#
 # Zur Kamera: "30-degree elevated three-quarter view" ist eine Fachbeschreibung,
 # kein Begriff aus den Trainingsdaten — das Modell malt darauf meist eine
 # Frontalansicht auf Augenhöhe. Was wirkt, sind geläufige Formulierungen:
@@ -154,13 +126,8 @@ if [ -z "$out" ]; then
     out="$slug.png"
 fi
 
-# Modelle: erst neben dem Projekt suchen (dort liegen sie bei geteiltem
-# Container-Mount), sonst im Repo selbst.
-if [ -d "$repo_root/../models" ]; then
-    models_default="$(cd "$repo_root/.." && pwd)/models"
-else
-    models_default="$repo_root/models"
-fi
+. "$repo_root/scripts/umgebung.sh"
+models_default="$(standard_modelle "$repo_root")"
 
 prompt="$charakter, $POSE, $STYLE"
 

@@ -80,6 +80,17 @@ für den Fall, dass du nur bauen und nichts erzeugen willst.
 `scripts/generate-macos.sh` erledigt auf einem Mac alles in einem Lauf: fehlende Modelle
 laden, Binaries bauen, Bild erzeugen, Motiv freistellen.
 
+**Wo die Modelle landen.** Ohne `--models`/`MODELS_DIR` suchen alle Scripts
+(`generate-macos.sh`, `token.sh`, `batch.sh`) zuerst ein `models/`-Verzeichnis **neben**
+diesem Repo, also `<projekt>/models` statt `<projekt>/flux2-rs/models`. Existiert das
+nicht, wird `<repo>/models` verwendet. Wichtig ist, dass sich alle Aufrufer einig sind —
+sonst lädt ein direkter Aufruf von `generate-macos.sh` in ein anderes Verzeichnis als
+`token.sh`, und dieselben mehrere GB großen Dateien liegen doppelt auf der Platte.
+Prüfen lässt sich das mit `token.sh -n/--dry-run` (zeigt den aufgelösten `--models`-Pfad
+im zusammengesetzten Aufruf) oder mit `generate-macos.sh --download-only` (zeigt beim
+Herunterladen, wohin geschrieben wird); im Zweifel einmal `--models` explizit angeben
+und dabei bleiben.
+
 ```sh
 # Einfachster Fall — Ergebnis hat einen transparenten Hintergrund
 scripts/generate-macos.sh "a red panda on a mossy rock, plain solid background"

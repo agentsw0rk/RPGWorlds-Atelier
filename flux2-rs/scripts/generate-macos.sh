@@ -22,7 +22,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Bei so viel Speicher ist nicht die Quantisierung der Engpass, sondern die
 # Wartezeit — Q5_K_M ist der Punkt, ab dem mehr Bits kaum noch sichtbar sind.
 quant="${QUANT:-Q5_K_M}"
-models_dir="${MODELS_DIR:-$repo_root/models}"
+models_dir="${MODELS_DIR:-$(standard_modelle "$repo_root")}"
 prompt=""
 out="out.png"
 size=1024
@@ -155,7 +155,8 @@ Modelle und Build:
                         f16 hoch — aus 9,5 GB werden sonst rund 19 GB im
                         Speicher. Bei klein-base-9b ist q8_0 voreingestellt.
       --quant Q         GGUF-Quantisierung für klein-4b, z. B. Q4_K_M, Q8_0 (Default: Q5_K_M)
-      --models DIR      Modellverzeichnis (Default: <repo>/models)
+      --models DIR      Modellverzeichnis (Default: <projekt>/models neben dem Repo,
+                        sonst <repo>/models)
       --threads N       Threads (Default: Performance-Kerne des Rechners)
       --vae-tiling      VAE gekachelt dekodieren (spart Speicher, kostet Zeit)
       --no-flash        Flash-Attention aus (Default)
