@@ -147,6 +147,12 @@ pure, testable half.
   Resume is file-based: an existing `<out-dir>/<slug>.png` counts as done, so re-running
   continues where it stopped. The INT/TERM trap deletes the in-flight file first — otherwise
   a truncated image would be treated as finished and the figure would silently be missing.
+- **`orte.txt` + `scripts/location-batch.sh`** — same idea as `charaktere.txt`/`batch.sh`
+  but for `location.sh`: 77 D&D locations (Forgotten Realms cities, Underdark, Ravenloft,
+  Eberron, Sigil, generic terrain for visual variety), same `slug | Name | German
+  description | English prompt` format, same resume-by-existing-file and INT/TERM cleanup
+  logic. Currently a separate copy of the batch driver rather than a shared library —
+  keep the two in sync by hand until they're unified.
 - **`scripts/token.sh`** — thin wrapper over the driver for character-token batches: STYLE/POSE
   live in the script as variables (identical prompt text across runs is the whole point),
   the character comes in as the argument, and every unknown flag is forwarded to

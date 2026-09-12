@@ -384,6 +384,34 @@ Nach jeder Figur schätzt das Script aus dem bisherigen Mittel die Restzeit — 
 40 Figuren ist der Unterschied zwischen "gleich fertig" und "über Nacht" die
 Planungsgrundlage.
 
+## Ortsreihe: `orte.txt` und `scripts/location-batch.sh`
+
+Dasselbe Prinzip wie oben, für Ortsillustrationen statt Charaktere. `orte.txt` enthält
+77 Orte in 14 Abschnitten — bekannte Städte und Schauplätze der Vergessenen Reiche,
+Eiswindtal, Unterreich, legendäre Ruinen und Dungeons, Barovia, Eberron, Sigil,
+Dragonlance, Dark Sun, dazu generische Landschaften und Bauwerke für Terrainvielfalt.
+Gleiches Format, gleiche Regel: bekannte Namen stehen links, im Prompt nur das Aussehen.
+
+```sh
+scripts/location-batch.sh                        # alles, was noch fehlt
+scripts/location-batch.sh --dry-run
+scripts/location-batch.sh --from castle-ravenloft
+scripts/location-batch.sh --only sharn --seeds 3 --seed -1
+```
+
+| Option | Bedeutung |
+|---|---|
+| `--liste DATEI` | andere Ortsliste (Default: `<repo>/orte.txt`) |
+| `--out-dir DIR` | Zielverzeichnis (Default: `locations`) |
+| `--from SLUG` | erst ab diesem Eintrag beginnen |
+| `--only SLUG` | nur diesen einen Eintrag |
+| `--force` | auch vorhandene Illustrationen neu erzeugen |
+| `-n, --dry-run` | nur zeigen, was zu tun wäre |
+
+Alles Weitere geht an `location.sh` durch, z. B. `--large` für 1536×768. Fortsetzen,
+Abbruch-Aufräumen und Fehlerbehandlung funktionieren exakt wie bei `batch.sh` — siehe
+oben.
+
 ## Ausführen
 
 ```sh
