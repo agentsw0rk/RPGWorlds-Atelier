@@ -412,6 +412,37 @@ Alles Weitere geht an `location.sh` durch, z. B. `--large` für 1536×768. Forts
 Abbruch-Aufräumen und Fehlerbehandlung funktionieren exakt wie bei `batch.sh` — siehe
 oben.
 
+## Porträts: `scripts/portrait.sh` und `scripts/portrait-batch.sh`
+
+Drittes Paar nach demselben Prinzip, für Kopf-und-Schultern-Porträts statt Ganzkörper-Token
+oder Ortsillustrationen. Wie `location.sh` bleibt der Hintergrund erhalten — das warme
+Pergament-Beige ist Teil des Bildes, kein Cutout-Hintergrund, deshalb auch hier
+`--keep-bg` fest verdrahtet.
+
+```sh
+scripts/portrait.sh "male mountain dwarf cleric, dark iron mail, warhammer, long \
+    braided beard, holy symbol on chest"
+
+scripts/portrait-batch.sh --dry-run
+scripts/portrait-batch.sh --only nyx-aschenkind --seeds 3 --seed -1
+```
+
+`portrait-batch.sh` arbeitet `charaktere_portraits.txt` ab (gleiches Format wie
+`charaktere.txt`), mit denselben Optionen wie `batch.sh`/`location-batch.sh`
+(`--liste`, `--out-dir`, `--from`, `--only`, `--force`, `--dry-run`) und demselben
+Verhalten: Fortsetzen ist der Normalfall, vorhandene Dateien im Zielverzeichnis
+(Default `portraits`) gelten als erledigt, Ctrl-C räumt die angefangene Datei weg, eine
+einzelne fehlgeschlagene Zeile bricht die Reihe nicht ab.
+
+**Zwei Verneinungs-Ebenen zu beachten.** `PORTRAIT_STYLE` selbst kommt ohne die drei
+Verneinungen des ursprünglichen Entwurfs aus (`no scenery`, `no text`, `no frame`) — aus
+demselben Grund wie bei Tokens und Orten: kein Negativ-Prompt bei `cfg_scale 1.0`. Die
+**Zeilen in `charaktere_portraits.txt` selbst** enthalten aber zusätzlich eigene
+Verneinungen am Ende jedes Prompts (`no scenery, no text, no border` je Eintrag) — die
+hat dieses Script nicht erzeugt und fasst die 450 Zeilen auch nicht automatisch an. Wer
+das beheben will, muss die Liste selbst bereinigen; `--style` ersetzt nur den Zusatz am
+Ende, nicht das, was schon in der jeweiligen Zeile steht.
+
 ## Ausführen
 
 ```sh
