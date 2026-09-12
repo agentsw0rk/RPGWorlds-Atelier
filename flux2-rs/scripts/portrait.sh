@@ -27,14 +27,24 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # trägt "no scenery" schon positiv; für den Rest gibt es hier ohnehin kein
 # Freistellen, das einen Rest aufräumen könnte — anders als bei token.sh ist
 # eine Verneinung hier also nicht einmal durch Nachbearbeitung abgesichert.
+#
+# "tight close-up crop … very little background visible" steht bewusst so
+# explizit da: "head and shoulders" allein sagt nur, WAS zu sehen ist, nicht
+# WIE GROSS die Figur im Bild sein soll. Ohne diese Zeile blieb viel Rand
+# ums Motiv — verstärkt durch "centered composition" und "simple uncluttered
+# composition" in charaktere_portraits.txt selbst, Formulierungen aus dem
+# Token-Wortschatz (dort ist Freiraum um die Figur erwünscht, hier nicht).
 PORTRAIT_STYLE="D&D fantasy character portrait, head and shoulders, \
-three-quarter view, face clearly visible, centered composition, hand-painted \
-medieval fantasy illustration, fine dark brown ink outlines, soft painterly \
-cel shading, subtle watercolor and parchment texture, natural facial \
-features, expressive eyes, realistic proportions, detailed hair and \
-clothing, restrained medieval fantasy design, warm earthy colors, muted \
-brown green ochre and cream palette, soft warm light from the upper left, \
-gentle shadows around the face, plain warm beige parchment background"
+three-quarter view, face clearly visible, tight close-up crop filling almost \
+the entire frame, subject cropped at the shoulders and just above the top of \
+the head, very little background visible around the figure, centered \
+composition, hand-painted medieval fantasy illustration, fine dark brown ink \
+outlines, soft painterly cel shading, subtle watercolor and parchment \
+texture, natural facial features, expressive eyes, realistic proportions, \
+detailed hair and clothing, restrained medieval fantasy design, warm earthy \
+colors, muted brown green ochre and cream palette, soft warm light from the \
+upper left, gentle shadows around the face, plain warm beige parchment \
+background"
 
 # --- Vorgaben für jedes Porträt ------------------------------------------------
 size=1024

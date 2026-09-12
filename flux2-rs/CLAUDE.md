@@ -161,6 +161,13 @@ pure, testable half.
   rows already end their own prompt with negations (`no scenery, no text, no border`) baked
   in by whatever produced the list — `PORTRAIT_STYLE` itself avoids that mistake, but the
   per-row text is untouched; fixing it means editing the 450 rows, not the script.
+  Verified on a real generated portrait: without an explicit frame-fill instruction the
+  subject rendered small and centered with a wide margin of parchment on all sides —
+  `head and shoulders` only says what's shown, not how tightly it's cropped, and the
+  rows' own `centered composition`/`simple uncluttered composition` (token vocabulary,
+  where clearance around the figure is wanted) reinforces the same spacious default.
+  `PORTRAIT_STYLE` now says explicitly `tight close-up crop filling almost the entire
+  frame, subject cropped at the shoulders and just above the top of the head`.
 - **`scripts/token.sh`** — thin wrapper over the driver for character-token batches: STYLE/POSE
   live in the script as variables (identical prompt text across runs is the whole point),
   the character comes in as the argument, and every unknown flag is forwarded to

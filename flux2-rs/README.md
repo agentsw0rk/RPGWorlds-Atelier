@@ -434,6 +434,16 @@ Verhalten: Fortsetzen ist der Normalfall, vorhandene Dateien im Zielverzeichnis
 (Default `portraits`) gelten als erledigt, Ctrl-C räumt die angefangene Datei weg, eine
 einzelne fehlgeschlagene Zeile bricht die Reihe nicht ab.
 
+**Motiv füllt den Rahmen nicht.** Ohne explizite Größenangabe fällt das Modell auf eine
+kleine, mittig platzierte Figur mit viel sichtbarem Pergament zurück — verstärkt durch
+`centered composition`/`simple uncluttered composition` in `charaktere_portraits.txt`
+selbst, Formulierungen aus dem Token-Wortschatz, wo Freiraum um die Figur erwünscht ist
+(fürs Zuschneiden auf dem Spielsockel). `PORTRAIT_STYLE` sagt deshalb ausdrücklich
+`tight close-up crop filling almost the entire frame, subject cropped at the shoulders
+and just above the top of the head`. Bleibt das Motiv trotzdem klein, hilft nur eine
+Bereinigung der 450 Zeilen selbst — `--style` wirkt nur auf den Zusatz, nicht auf das,
+was schon in der jeweiligen Zeile steht (siehe oben).
+
 **Zwei Verneinungs-Ebenen zu beachten.** `PORTRAIT_STYLE` selbst kommt ohne die drei
 Verneinungen des ursprünglichen Entwurfs aus (`no scenery`, `no text`, `no frame`) — aus
 demselben Grund wie bei Tokens und Orten: kein Negativ-Prompt bei `cfg_scale 1.0`. Die
