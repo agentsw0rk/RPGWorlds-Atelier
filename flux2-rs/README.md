@@ -308,6 +308,31 @@ das Modell hat kein Gedächtnis zwischen Läufen, ein einziges geändertes Wort 
 den Stil der ganzen Reihe. Zusammen mit festem Seed und `-r` auf eine bereits
 akzeptierte Figur ist das der einzige Weg zu einer einheitlichen Bibliothek.
 
+## Ortsillustrationen: `scripts/location.sh`
+
+Dasselbe Prinzip wie `token.sh`, aber für Landschaften und Gebäude statt Charaktere:
+Stil steht fest im Script, der Ort kommt als Argument. Anders als bei Tokens wird nicht
+freigestellt — eine Ortsillustration ist eine vollständige Szene, kein auszuschneidendes
+Motiv.
+
+```sh
+scripts/location.sh "a small remote medieval village, stone church with a tall narrow \
+    bell tower, five timber and stone houses, pine forest behind the settlement, \
+    distant rugged mountains, open village square in foreground, light morning mist"
+
+scripts/location.sh --large --seeds 3 --seed -1 "a ruined watchtower on a sea cliff, \
+    crumbling stone walls, crashing waves below"
+```
+
+Stil: handgezeichnete Feder-Tusche-Gravur auf Pergament, sepiafarben, Reisejournal einer
+mittelalterlichen Fantasywelt. Default-Größe 1024×512 (2:1), `--large` schaltet auf
+1536×768. Der Dateiname entsteht wie bei `token.sh` aus dem Teil vor dem ersten Komma.
+
+Verneinungen (`no text`, `no UI`, `no modern objects`, …) fehlen im Stil absichtlich —
+bei `cfg_scale 1.0` gibt es keinen Negativ-Prompt, eine Verneinung im Positiv-Prompt
+kodiert nur das ausgeschlossene Wort. Was in der Referenz noch als Verneinung stand, ist
+hier positiv gelöst: `open village square in foreground` statt `no people in foreground`.
+
 ## Ganze Reihe: `charaktere.txt` und `scripts/batch.sh`
 
 `charaktere.txt` enthält 450 fertige Figuren in 34 Abschnitten — bekannte Held:innen und

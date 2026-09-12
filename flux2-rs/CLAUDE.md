@@ -152,6 +152,10 @@ pure, testable half.
   the character comes in as the argument, and every unknown flag is forwarded to
   `generate-macos.sh` **after** its own defaults, so the caller's value wins. `-n` prints
   the assembled call instead of running it.
+- **`scripts/location.sh`** — same shape as `token.sh` but for full-scene location
+  illustrations (villages, ruins, landscapes) instead of cutout character tokens: fixed
+  STYLE, the place description as the argument, `--large` toggles 1024x512/1536x768.
+  Always passes `--keep-bg` — a location is a complete scene, not a subject to matte out.
 - **`scripts/generate-macos.sh`** — the host-side driver (download → build → generate →
   matte). All of its argument validation happens before the first model is touched, so
   `--help` and bad-argument paths are safe to exercise anywhere; everything after the
