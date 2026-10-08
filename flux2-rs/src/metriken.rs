@@ -8,7 +8,9 @@ use serde::{Deserialize, Serialize};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 /// Ein Ereignis im Metrikstrom. `t_ms` zählt ab Beginn des Jobs.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -151,6 +153,59 @@ impl Metriken {
                 dauer_s,
             });
         }
+    }
+}
+
+/// Ein Messpunkt von Prozess und System.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Messung {
+    pub rss_mb: u64,
+    pub frei_mb: u64,
+    pub swap_mb: u64,
+    pub cpu_pct: f32,
+}
+
+/// Woher die Messwerte kommen. Die echte Quelle fragt das Betriebssystem, Tests
+/// setzen eine feste ein.
+pub trait Messquelle: Send {
+    fn messen(&mut self) -> Messung;
+}
+
+/// Hintergrund-Thread, der in festem Abstand eine Probe schreibt — auch während
+/// sd.cpp rechnet und der Ablauf selbst nichts melden kann.
+pub struct Sampler {
+    halt: Arc<AtomicBool>,
+    thread: std::thread::JoinHandle<()>,
+}
+
+impl Sampler {
+    /// Die erste Probe kommt sofort, dann alle `abstand`.
+    pub fn starten(metriken: Metriken, mut quelle: Box<dyn Messquelle>, abstand: Duration) -> Self {
+        let halt = Arc::new(AtomicBool::new(false));
+        let thread = {
+            let halt = halt.clone();
+            std::thread::spawn(move || {
+                while !halt.load(Ordering::Relaxed) {
+                    let m = quelle.messen();
+                    metriken.eintrag(|t_ms| Eintrag::Probe {
+                        t_ms,
+                        rss_mb: m.rss_mb,
+                        frei_mb: m.frei_mb,
+                        swap_mb: m.swap_mb,
+                        cpu_pct: m.cpu_pct,
+                    });
+                    std::thread::park_timeout(abstand);
+                }
+            })
+        };
+        Sampler { halt, thread }
+    }
+
+    /// Hält den Thread an und wartet, bis er beendet ist.
+    pub fn stoppen(self) {
+        self.halt.store(true, Ordering::Relaxed);
+        self.thread.thread().unpark();
+        let _ = self.thread.join();
     }
 }
 
@@ -337,5 +392,56 @@ mod tests {
             eintraege_lesen(&pfad).unwrap(),
             vec![Eintrag::Kontext { t_ms: 0, kontext }]
         );
+    }
+
+    struct FesteQuelle;
+    impl Messquelle for FesteQuelle {
+        fn messen(&mut self) -> Messung {
+            Messung {
+                rss_mb: 7000,
+                frei_mb: 300,
+                swap_mb: 1024,
+                cpu_pct: 250.0,
+            }
+        }
+    }
+
+    fn proben(pfad: &std::path::Path) -> usize {
+        eintraege_lesen(pfad)
+            .unwrap()
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e,
+                    Eintrag::Probe {
+                        rss_mb: 7000,
+                        swap_mb: 1024,
+                        ..
+                    }
+                )
+            })
+            .count()
+    }
+
+    #[test]
+    fn sampler_schreibt_proben_bis_er_gestoppt_wird() {
+        let (_dir, pfad, m) = feste_uhr(0);
+        let sampler = Sampler::starten(
+            m,
+            Box::new(FesteQuelle),
+            std::time::Duration::from_millis(5),
+        );
+        let frist = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while proben(&pfad) < 2 {
+            assert!(
+                std::time::Instant::now() < frist,
+                "keine zwei Proben in 5 s"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        sampler.stoppen();
+        let danach = proben(&pfad);
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        assert_eq!(proben(&pfad), danach, "nach stoppen() kommt nichts mehr");
     }
 }
