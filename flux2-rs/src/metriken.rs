@@ -3,7 +3,11 @@
 //! Eine Zeile pro Ereignis (`metrics.jsonl`), sofort geschrieben — wenn der
 //! Rechner mitten im Lauf einfriert, bleibt die letzte Zeile davor erhalten.
 
+use anyhow::{Context, Result};
 use serde::Serialize;
+use std::fs::{File, OpenOptions};
+use std::io::Write;
+use std::path::Path;
 
 /// Ein Ereignis im Metrikstrom. `t_ms` zählt ab Beginn des Jobs.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -26,6 +30,39 @@ impl Eintrag {
     /// Die Zeile für `metrics.jsonl`, ohne Zeilenumbruch.
     pub fn zeile(&self) -> String {
         serde_json::to_string(self).expect("Eintrag ist immer serialisierbar")
+    }
+}
+
+/// Hängt Einträge zeilenweise an `metrics.jsonl` an.
+///
+/// Jede Zeile geht unmittelbar auf die Platte (kein Puffer, `sync_data`): der
+/// Fall, für den das gebaut ist, ist ein Rechner, der mitten im Lauf einfriert.
+pub struct MetrikSchreiber {
+    datei: File,
+}
+
+impl MetrikSchreiber {
+    pub fn oeffnen(pfad: &Path) -> Result<Self> {
+        let datei = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(pfad)
+            .with_context(|| format!("{} nicht öffnbar", pfad.display()))?;
+        Ok(MetrikSchreiber { datei })
+    }
+
+    pub fn schreibe(&mut self, eintrag: &Eintrag) -> Result<()> {
+        // Eine Zeile in einem einzigen write: so mischen sich Zeilen zweier
+        // Schreiber (Sampler und Ablauf) nicht mitten im Text.
+        let mut zeile = eintrag.zeile();
+        zeile.push('\n');
+        self.datei
+            .write_all(zeile.as_bytes())
+            .context("Metrik nicht schreibbar")?;
+        self.datei
+            .sync_data()
+            .context("Metrik nicht auf die Platte gebracht")?;
+        Ok(())
     }
 }
 
@@ -63,5 +100,29 @@ mod tests {
         assert_eq!(wert["frei_mb"], 410);
         assert_eq!(wert["swap_mb"], 2048);
         assert_eq!(wert["cpu_pct"], 380.5);
+    }
+
+    #[test]
+    fn geschriebene_eintraege_sind_sofort_lesbar_auch_bei_offenem_schreiber() {
+        let dir = tempfile::tempdir().unwrap();
+        let pfad = dir.path().join("metrics.jsonl");
+        let mut schreiber = MetrikSchreiber::oeffnen(&pfad).unwrap();
+        schreiber
+            .schreibe(&Eintrag::Phase {
+                t_ms: 0,
+                name: "laden".into(),
+            })
+            .unwrap();
+        schreiber
+            .schreibe(&Eintrag::Phase {
+                t_ms: 10,
+                name: "sampling".into(),
+            })
+            .unwrap();
+        // Der Schreiber lebt noch: ein Absturz des Rechners käme genauso.
+        let inhalt = std::fs::read_to_string(&pfad).unwrap();
+        let zeilen: Vec<&str> = inhalt.lines().collect();
+        assert_eq!(zeilen.len(), 2, "{inhalt:?}");
+        assert!(zeilen[1].contains("sampling"));
     }
 }
