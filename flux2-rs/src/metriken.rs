@@ -69,9 +69,23 @@ impl MetrikSchreiber {
 /// Liest aus einer Logzeile von sd.cpp, welche Stufe fertig ist und wie lange
 /// sie gedauert hat. sd.cpp meldet das als `<stufe> completed, taking 1.23s`.
 pub fn stufe_aus_logzeile(zeile: &str) -> Option<(&'static str, f32)> {
-    let rest = zeile.split_once("sampling completed, taking ")?.1;
-    let sekunden = rest.trim().strip_suffix('s')?.parse().ok()?;
-    Some(("sampling", sekunden))
+    /// Text in sd.cpp → Name in den Metriken.
+    const STUFEN: [(&str, &str); 5] = [
+        ("loading tensors", "laden"),
+        ("get_learned_condition", "text_encoder"),
+        ("encode_first_stage", "vae_encode"),
+        ("sampling", "sampling"),
+        ("decode_first_stage", "vae_decode"),
+    ];
+    let (name, rest) = STUFEN.iter().find_map(|(sd_name, name)| {
+        let rest = zeile
+            .split_once(&format!("{sd_name} completed, taking "))?
+            .1;
+        Some((*name, rest))
+    })?;
+    // Die Zahl endet am `s`; bei `loading tensors` folgt noch eine Klammer.
+    let sekunden = rest.split_once('s')?.0.parse().ok()?;
+    Some((name, sekunden))
 }
 
 #[cfg(test)]
@@ -138,5 +152,35 @@ mod tests {
     fn logzeile_mit_sampling_dauer_ergibt_stufe_und_sekunden() {
         let zeile = "stable-diffusion.cpp:4389 - sampling completed, taking 123.45s\n";
         assert_eq!(stufe_aus_logzeile(zeile), Some(("sampling", 123.45)));
+    }
+
+    #[test]
+    fn die_uebrigen_stufen_werden_erkannt_auch_mit_text_hinter_der_zahl() {
+        let faelle = [
+            (
+                "x.cpp:1 - decode_first_stage completed, taking 50.20s",
+                "vae_decode",
+                50.2,
+            ),
+            (
+                "x.cpp:1 - encode_first_stage completed, taking 3.10s",
+                "vae_encode",
+                3.1,
+            ),
+            (
+                "x.cpp:1 - get_learned_condition completed, taking 4.00s",
+                "text_encoder",
+                4.0,
+            ),
+            (
+                "x.cpp:1 - loading tensors completed, taking 12.30s (read: 8.00s, memcpy: 1.00s)",
+                "laden",
+                12.3,
+            ),
+        ];
+        for (zeile, name, sekunden) in faelle {
+            assert_eq!(stufe_aus_logzeile(zeile), Some((name, sekunden)), "{zeile}");
+        }
+        assert_eq!(stufe_aus_logzeile("x.cpp:1 - Version: Flux.2 klein"), None);
     }
 }
