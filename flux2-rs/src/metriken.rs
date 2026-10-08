@@ -22,6 +22,8 @@ pub enum Eintrag {
         name: String,
         dauer_s: f32,
     },
+    /// Einstellungen des Bildes, das gleich erzeugt wird.
+    Kontext { t_ms: u64, kontext: Kontext },
     /// Messwert des Samplers. Speicher in MiB; `cpu_pct` über alle Kerne
     /// (400 = vier Kerne voll ausgelastet).
     Probe {
@@ -73,6 +75,22 @@ impl MetrikSchreiber {
     }
 }
 
+/// Was ein Bild ausmacht, soweit es Speicher und Dauer beeinflusst.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Kontext {
+    pub preset: String,
+    pub wtype: Option<String>,
+    pub breite: u32,
+    pub hoehe: u32,
+    pub steps: u32,
+    /// Pixelmaße (Breite, Höhe) jeder Referenz, so wie sie ans Modell gehen.
+    pub referenzen: Vec<(u32, u32)>,
+    pub mmap: bool,
+    pub flash_attention: bool,
+    pub vae_tiling: bool,
+    pub threads: i32,
+}
+
 /// Gemeinsamer Zugang zum Metrikstrom eines Jobs. Klonbar: Sampler-Thread,
 /// Log-Callback und Ablauf schreiben in dieselbe Datei.
 ///
@@ -109,6 +127,11 @@ impl Metriken {
         if let Err(fehler) = innen.schreiber.schreibe(&eintrag) {
             eprintln!("Metrik: {fehler:#}");
         }
+    }
+
+    /// Hält die Einstellungen des folgenden Bildes fest.
+    pub fn kontext(&self, kontext: Kontext) {
+        self.eintrag(|t_ms| Eintrag::Kontext { t_ms, kontext });
     }
 
     /// Ein Abschnitt des Ablaufs beginnt.
@@ -291,6 +314,28 @@ mod tests {
                 t_ms: 900,
                 name: "referenz".into()
             }]
+        );
+    }
+
+    #[test]
+    fn kontext_haelt_einstellungen_und_referenzmasse_fest() {
+        let (_dir, pfad, m) = feste_uhr(0);
+        let kontext = Kontext {
+            preset: "klein-9b".into(),
+            wtype: Some("q8_0".into()),
+            breite: 768,
+            hoehe: 1536,
+            steps: 4,
+            referenzen: vec![(1024, 1024)],
+            mmap: false,
+            flash_attention: false,
+            vae_tiling: false,
+            threads: 8,
+        };
+        m.kontext(kontext.clone());
+        assert_eq!(
+            eintraege_lesen(&pfad).unwrap(),
+            vec![Eintrag::Kontext { t_ms: 0, kontext }]
         );
     }
 }
