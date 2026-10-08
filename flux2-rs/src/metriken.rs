@@ -66,6 +66,14 @@ impl MetrikSchreiber {
     }
 }
 
+/// Liest aus einer Logzeile von sd.cpp, welche Stufe fertig ist und wie lange
+/// sie gedauert hat. sd.cpp meldet das als `<stufe> completed, taking 1.23s`.
+pub fn stufe_aus_logzeile(zeile: &str) -> Option<(&'static str, f32)> {
+    let rest = zeile.split_once("sampling completed, taking ")?.1;
+    let sekunden = rest.trim().strip_suffix('s')?.parse().ok()?;
+    Some(("sampling", sekunden))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -124,5 +132,11 @@ mod tests {
         let zeilen: Vec<&str> = inhalt.lines().collect();
         assert_eq!(zeilen.len(), 2, "{inhalt:?}");
         assert!(zeilen[1].contains("sampling"));
+    }
+
+    #[test]
+    fn logzeile_mit_sampling_dauer_ergibt_stufe_und_sekunden() {
+        let zeile = "stable-diffusion.cpp:4389 - sampling completed, taking 123.45s\n";
+        assert_eq!(stufe_aus_logzeile(zeile), Some(("sampling", 123.45)));
     }
 }
