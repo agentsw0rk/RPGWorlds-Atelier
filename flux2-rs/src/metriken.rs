@@ -4,17 +4,24 @@
 //! Rechner mitten im Lauf einfriert, bleibt die letzte Zeile davor erhalten.
 
 use anyhow::{Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 /// Ein Ereignis im Metrikstrom. `t_ms` zählt ab Beginn des Jobs.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "art", rename_all = "snake_case")]
 pub enum Eintrag {
     /// Ein Abschnitt des Ablaufs beginnt (z. B. `sampling`, `vae_decode`).
     Phase { t_ms: u64, name: String },
+    /// Eine Stufe von sd.cpp ist fertig (aus dem Log), mit ihrer Dauer.
+    Stufe {
+        t_ms: u64,
+        name: String,
+        dauer_s: f32,
+    },
     /// Messwert des Samplers. Speicher in MiB; `cpu_pct` über alle Kerne
     /// (400 = vier Kerne voll ausgelastet).
     Probe {
@@ -64,6 +71,67 @@ impl MetrikSchreiber {
             .context("Metrik nicht auf die Platte gebracht")?;
         Ok(())
     }
+}
+
+/// Gemeinsamer Zugang zum Metrikstrom eines Jobs. Klonbar: Sampler-Thread,
+/// Log-Callback und Ablauf schreiben in dieselbe Datei.
+///
+/// Ein Fehler beim Schreiben bricht nie einen Lauf ab — Beobachtung darf das
+/// Beobachtete nicht kaputt machen.
+#[derive(Clone)]
+pub struct Metriken {
+    innen: Arc<Mutex<Innen>>,
+}
+
+struct Innen {
+    schreiber: MetrikSchreiber,
+    uhr: Box<dyn Fn() -> u64 + Send>,
+}
+
+impl Metriken {
+    /// Zeit in Millisekunden ab dem Aufruf.
+    pub fn oeffnen(pfad: &Path) -> Result<Self> {
+        let start = std::time::Instant::now();
+        Self::mit_uhr(pfad, Box::new(move || start.elapsed().as_millis() as u64))
+    }
+
+    pub fn mit_uhr(pfad: &Path, uhr: Box<dyn Fn() -> u64 + Send>) -> Result<Self> {
+        let schreiber = MetrikSchreiber::oeffnen(pfad)?;
+        Ok(Metriken {
+            innen: Arc::new(Mutex::new(Innen { schreiber, uhr })),
+        })
+    }
+
+    /// Schreibt einen Eintrag; `bauen` bekommt die aktuelle Jobzeit.
+    pub fn eintrag(&self, bauen: impl FnOnce(u64) -> Eintrag) {
+        let mut innen = self.innen.lock().unwrap_or_else(|e| e.into_inner());
+        let eintrag = bauen((innen.uhr)());
+        if let Err(fehler) = innen.schreiber.schreibe(&eintrag) {
+            eprintln!("Metrik: {fehler:#}");
+        }
+    }
+
+    /// Eine Logzeile von sd.cpp; nur fertige Stufen werden zu Einträgen.
+    pub fn sd_log(&self, zeile: &str) {
+        if let Some((name, dauer_s)) = stufe_aus_logzeile(zeile) {
+            self.eintrag(|t_ms| Eintrag::Stufe {
+                t_ms,
+                name: name.into(),
+                dauer_s,
+            });
+        }
+    }
+}
+
+/// Liest einen Metrikstrom zurück. Eine unvollständige letzte Zeile (Absturz
+/// mitten im Schreiben) wird übergangen, nicht als Fehler gemeldet.
+pub fn eintraege_lesen(pfad: &Path) -> Result<Vec<Eintrag>> {
+    let text = std::fs::read_to_string(pfad)
+        .with_context(|| format!("{} nicht lesbar", pfad.display()))?;
+    Ok(text
+        .lines()
+        .filter_map(|zeile| serde_json::from_str(zeile).ok())
+        .collect())
 }
 
 /// Liest aus einer Logzeile von sd.cpp, welche Stufe fertig ist und wie lange
@@ -182,5 +250,26 @@ mod tests {
             assert_eq!(stufe_aus_logzeile(zeile), Some((name, sekunden)), "{zeile}");
         }
         assert_eq!(stufe_aus_logzeile("x.cpp:1 - Version: Flux.2 klein"), None);
+    }
+
+    fn feste_uhr(ms: u64) -> (tempfile::TempDir, std::path::PathBuf, Metriken) {
+        let dir = tempfile::tempdir().unwrap();
+        let pfad = dir.path().join("metrics.jsonl");
+        let m = Metriken::mit_uhr(&pfad, Box::new(move || ms)).unwrap();
+        (dir, pfad, m)
+    }
+
+    #[test]
+    fn sd_logzeile_wird_zu_stufeneintrag_mit_jobzeit() {
+        let (_dir, pfad, m) = feste_uhr(4200);
+        m.sd_log("x.cpp:1 - sampling completed, taking 2.50s\n");
+        assert_eq!(
+            eintraege_lesen(&pfad).unwrap(),
+            vec![Eintrag::Stufe {
+                t_ms: 4200,
+                name: "sampling".into(),
+                dauer_s: 2.5
+            }]
+        );
     }
 }
