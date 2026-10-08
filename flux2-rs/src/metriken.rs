@@ -111,6 +111,14 @@ impl Metriken {
         }
     }
 
+    /// Ein Abschnitt des Ablaufs beginnt.
+    pub fn phase(&self, name: &str) {
+        self.eintrag(|t_ms| Eintrag::Phase {
+            t_ms,
+            name: name.into(),
+        });
+    }
+
     /// Eine Logzeile von sd.cpp; nur fertige Stufen werden zu Einträgen.
     pub fn sd_log(&self, zeile: &str) {
         if let Some((name, dauer_s)) = stufe_aus_logzeile(zeile) {
@@ -269,6 +277,19 @@ mod tests {
                 t_ms: 4200,
                 name: "sampling".into(),
                 dauer_s: 2.5
+            }]
+        );
+    }
+
+    #[test]
+    fn phase_schreibt_marke_mit_jobzeit() {
+        let (_dir, pfad, m) = feste_uhr(900);
+        m.phase("referenz");
+        assert_eq!(
+            eintraege_lesen(&pfad).unwrap(),
+            vec![Eintrag::Phase {
+                t_ms: 900,
+                name: "referenz".into()
             }]
         );
     }
