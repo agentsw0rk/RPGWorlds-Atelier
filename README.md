@@ -185,44 +185,7 @@ RPGWorlds Atelier
 ├── models/                ← die KI-Modelle (mehrere GB, nicht im Repo)
 └── tokens/ …              ← deine fertigen Bilder (nicht im Repo)
 ```
-
-## 🛠️ Für Entwickler
-
-Das Projekt ist ein Rust-Programm über [`diffusion-rs`](https://github.com/newfla/diffusion-rs)
-(Bindings zu [`stable-diffusion.cpp`](https://github.com/leejet/stable-diffusion.cpp)). Das
-Freistellen läuft in reinem Rust. Tests, die **keine Bilder erzeugen** und in Sekunden laufen:
-
-```sh
-cd flux2-rs
-cargo test --no-default-features      # Rust-Logik (ohne den langen C++-Build)
-node --test web/logik.test.js         # Logik der Weboberfläche
-```
-
-Tiefer einsteigen:
-
-- 📖 [`flux2-rs/README.md`](flux2-rs/README.md): alle Optionen, Modelle, Skripte, Stolpersteine
-- 🧭 [`flux2-rs/CLAUDE.md`](flux2-rs/CLAUDE.md): Aufbau, Architektur und Fallstricke für Mitentwickler
-
-## ❓ Häufige Fragen
-
-**Kostet das etwas?** Nein, es gibt keine laufenden Kosten. Du brauchst nur einen geeigneten Rechner.
-
-**Gehen meine Texte oder Bilder ins Internet?** Nein. Aus dem Netz kommen nur die Modelle
-(einmalig, von Hugging Face). Das Erzeugen passiert komplett lokal.
-
-**Läuft das auch auf Windows oder Linux?** Die Skripte und die Anleitung sind für den Mac mit
-Apple-Chip gemacht und dort getestet. Der Code selbst ist Rust, aber andere Systeme sind nicht
-ausprobiert.
-
-**Darf ich die Bilder verkaufen oder veröffentlichen?** Das hängt von den **Lizenzen der Modelle**
-ab, die du benutzt. Die stehen auf den jeweiligen Hugging-Face-Seiten. Lies sie, bevor du Bilder
-kommerziell verwendest. Für dieses Projekt selbst liegt aktuell noch **keine Lizenzdatei** bei.
-
-**Warum dauert das so lange?** Ein Bildmodell rechnet Millionen Zahlen pro Schritt, und ein
-Laptop ist keine Rechenfarm. Dafür gehört alles dir. 😉
-
 ---
-
 <div align="center">
 
 Viel Spaß beim Würfeln und Malen! 🎲🖌️🐉
