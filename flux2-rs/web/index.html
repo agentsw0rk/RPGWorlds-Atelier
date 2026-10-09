@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>RPGWorlds Atelier</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="kopf">
+  <div class="marke">
+    <span class="logo" aria-hidden="true">◈</span>
+    <h1>RPGWorlds Atelier</h1>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Bereiche">
+    <button role="tab" data-tab="erstellen" aria-selected="true">Erstellen</button>
+    <button role="tab" data-tab="jobs" aria-selected="false">Jobs <span class="zaehler" id="jobZaehler" hidden>0</span></button>
+    <button role="tab" data-tab="galerie" aria-selected="false">Galerie</button>
+    <button role="tab" data-tab="listen" aria-selected="false">Listen</button>
+  </nav>
+  <div class="kopf-rechts">
+    <span class="verbindung" id="verbindung" data-zustand="unbekannt" role="status">verbinde …</span>
+    <button class="schlicht" id="tokenKnopf" title="API-Token eingeben">Token</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ERSTELLEN -->
+  <section id="tab-erstellen" class="bereich" role="tabpanel">
+    <div class="zwei-spalten">
+      <form id="formular" class="karte" autocomplete="off">
+        <h2>Neuer Auftrag</h2>
+
+        <fieldset class="arten">
+          <legend>Art</legend>
+          <div id="artWahl" class="segmente"></div>
+        </fieldset>
+
+        <label class="feld">
+          <span class="etikett">Prompt <small>englisch — beschreibt Figur oder Ort, den Stil setzt die Art automatisch</small></span>
+          <textarea id="prompt" rows="5" placeholder="female dwarf blacksmith, red braided hair, leather apron, carrying a heavy hammer, busy harbor town street"></textarea>
+        </label>
+
+        <div class="reihe">
+          <label class="feld klein">
+            <span class="etikett">Varianten</span>
+            <input type="number" id="varianten" min="1" max="64" value="1" inputmode="numeric">
+          </label>
+          <fieldset class="feld seed">
+            <legend class="etikett">Seed</legend>
+            <div class="seed-zeile">
+              <label class="radio"><input type="radio" name="seedModus" value="wuerfeln" checked> zufällig</label>
+              <label class="radio"><input type="radio" name="seedModus" value="fest"> fest</label>
+              <input type="number" id="seed" value="42" aria-label="Seed" disabled>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="feld">
+          <span class="etikett">Referenzbild <small>optional</small></span>
+          <div id="ablage" class="ablage" tabindex="0" role="button" aria-label="Referenzbild wählen oder hierher ziehen">
+            <input type="file" id="datei" accept="image/*" hidden>
+            <div id="ablageLeer" class="ablage-leer">Bild hierher ziehen oder klicken <small>PNG, JPEG, WebP</small></div>
+            <div id="ablageVoll" class="ablage-voll" hidden>
+              <img id="ablageBild" alt="Referenz">
+              <div class="ablage-optionen">
+                <label class="radio"><input type="radio" name="refModus" value="stil" checked> nur als <strong>Stilvorlage</strong></label>
+                <label class="radio"><input type="radio" name="refModus" value="inhalt"> als <strong>Szene</strong> verwenden</label>
+                <small class="ref-tipp">„Szene“: Die Figur wird in dieses Bild gesetzt. Der Server ergänzt die Anweisung selbst — im Prompt nur die Figur beschreiben, keinen Hintergrund.</small>
+                <button type="button" class="schlicht" id="ablageWeg">Entfernen</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <details class="mehr">
+          <summary>Weitere Einstellungen</summary>
+          <div class="raster">
+            <label class="feld"><span class="etikett">Modell</span>
+              <select id="preset">
+                <option value="klein-9b">klein-9b (Standard)</option>
+                <option value="klein-4b">klein-4b (schneller)</option>
+                <option value="klein-base-9b">klein-base-9b (20 Steps, gated)</option>
+              </select>
+            </label>
+            <label class="feld"><span class="etikett">Breite</span><input type="number" id="breite" step="16" min="256" max="2048"></label>
+            <label class="feld"><span class="etikett">Höhe</span><input type="number" id="hoehe" step="16" min="256" max="2048"></label>
+            <label class="feld"><span class="etikett">Steps</span><input type="number" id="steps" min="1" max="100" placeholder="Standard"></label>
+            <label class="feld"><span class="etikett">cfg</span><input type="number" id="cfg" step="0.1" min="0" max="20" placeholder="Standard"></label>
+            <label class="feld"><span class="etikett">Guidance</span><input type="number" id="guidance" step="0.1" min="0" max="20" placeholder="3.5"></label>
+            <label class="feld" title="Je kleiner die Referenz, desto weniger Tokens und desto schneller das Sampling. Wirkt nur mit Referenzbild.">
+              <span class="etikett">Referenzgröße (lange Kante)</span>
+              <select id="refMaxPx">
+                <option value="">Standard (1 MP)</option>
+                <option value="768">768 px</option>
+                <option value="512">512 px – deutlich schneller</option>
+                <option value="384">384 px</option>
+                <option value="256">256 px</option>
+              </select>
+            </label>
+            <label class="feld"><span class="etikett">Dateiname</span><input type="text" id="name" placeholder="aus dem Prompt"></label>
+            <label class="feld"><span class="etikett">Freistellen</span>
+              <select id="freistellen">
+                <option value="auto">wie die Art</option>
+                <option value="ja">ja</option>
+                <option value="nein">nein</option>
+              </select>
+            </label>
+            <label class="feld" id="zeilePose" hidden><span class="etikett">Pose <small>nur Token</small></span><input type="text" id="pose" placeholder="Standardpose"></label>
+            <label class="radio feld" id="zeileLarge" hidden><input type="checkbox" id="large"> größer (1536×768)</label>
+            <label class="feld breit"><span class="etikett">Stil ersetzen <small>nur für Experimente — bricht die Reihe</small></span><textarea id="style" rows="2" placeholder="Standardstil der Art"></textarea></label>
+          </div>
+        </details>
+
+        <div class="knoepfe">
+          <button type="button" id="vorschauKnopf" class="sekundaer">Vorschau</button>
+          <button type="submit" id="startKnopf" class="primaer">Generieren</button>
+        </div>
+        <p class="hinweis" id="formHinweis" role="alert" hidden></p>
+      </form>
+
+      <aside class="karte vorschau" aria-live="polite">
+        <h2>Vorschau</h2>
+        <div id="vorschau">
+          <p class="leer">„Vorschau“ zeigt, was der Auftrag erzeugen würde — Prompts, Seeds und Dateinamen — ohne Rechenzeit zu verbrauchen.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- JOBS -->
+  <section id="tab-jobs" class="bereich" role="tabpanel" hidden>
+    <div class="leiste">
+      <h2>Warteschlange</h2>
+      <button class="schlicht" id="aufraeumen" title="Beendete Jobs entfernen">Beendete entfernen</button>
+    </div>
+    <div id="jobListe" class="liste"></div>
+    <p class="leer" id="jobLeer">Noch keine Jobs. Starte einen unter „Erstellen“.</p>
+  </section>
+
+  <!-- GALERIE -->
+  <section id="tab-galerie" class="bereich" role="tabpanel" hidden>
+    <div class="leiste">
+      <h2>Galerie</h2>
+      <div class="filter" id="galerieFilter" role="group" aria-label="Filter nach Art"></div>
+    </div>
+    <div id="galerieRaster" class="raster-bilder"></div>
+    <p class="leer" id="galerieLeer">Noch keine fertigen Bilder.</p>
+  </section>
+
+  <!-- LISTEN -->
+  <section id="tab-listen" class="bereich" role="tabpanel" hidden>
+    <div class="leiste">
+      <h2>Listen</h2>
+      <div class="filter" id="listenArt" role="group" aria-label="Liste wählen"></div>
+    </div>
+
+    <div class="karte listen-optionen">
+      <label class="feld klein"><span class="etikett">Varianten</span><input type="number" id="listeVarianten" min="1" max="64" value="1"></label>
+      <label class="feld"><span class="etikett">Modell</span>
+        <select id="listePreset">
+          <option value="klein-9b">klein-9b</option>
+          <option value="klein-4b">klein-4b</option>
+          <option value="klein-base-9b">klein-base-9b</option>
+        </select>
+      </label>
+      <label class="radio"><input type="checkbox" id="listeZufall"> zufällige Seeds <small>(sonst fest 42: Fortsetzen überspringt Vorhandenes)</small></label>
+      <label class="radio"><input type="checkbox" id="listeForce"> vorhandene neu erzeugen</label>
+      <label class="feld grow"><span class="etikett">Suchen</span><input type="search" id="listeSuche" placeholder="Name oder Prompt"></label>
+    </div>
+
+    <div class="leiste">
+      <span id="listeInfo" class="muted"></span>
+      <div class="knoepfe">
+        <button class="schlicht" id="listeAlle">Alle sichtbaren wählen</button>
+        <button class="schlicht" id="listeKeine">Auswahl leeren</button>
+        <button class="sekundaer" id="listeFehlende">Alle fehlenden starten</button>
+        <button class="primaer" id="listeAuswahl" disabled>Auswahl starten</button>
+      </div>
+    </div>
+    <div id="listeRaster" class="liste-eintraege"></div>
+    <p class="leer" id="listeLeer" hidden>Keine Einträge gefunden.</p>
+  </section>
+
+</main>
+
+<dialog id="lightbox" class="lightbox" aria-label="Bildansicht">
+  <div class="lb-rahmen">
+    <button class="lb-zu" id="lbZu" aria-label="Schließen">✕</button>
+    <button class="lb-nav lb-zurueck" id="lbZurueck" aria-label="Vorheriges Bild">‹</button>
+    <figure class="lb-bild"><img id="lbBild" alt=""></figure>
+    <button class="lb-nav lb-weiter" id="lbWeiter" aria-label="Nächstes Bild">›</button>
+    <aside class="lb-seite">
+      <h3 id="lbTitel"></h3>
+      <dl id="lbDaten" class="daten"></dl>
+      <details id="lbPromptBox"><summary>Prompt</summary><pre id="lbPrompt"></pre></details>
+      <div class="lb-aktionen">
+        <a class="knopf sekundaer" id="lbDownload" download>Herunterladen</a>
+        <div class="gruppe" id="lbNochmalGruppe">
+          <label class="etikett" for="lbAnzahl">Mehr davon</label>
+          <select id="lbAnzahl"><option>1</option><option>2</option><option selected>4</option><option>8</option></select>
+          <button class="primaer" id="lbNochmal">Starten</button>
+        </div>
+        <button class="sekundaer" id="lbUebernehmen">Auftrag übernehmen</button>
+      </div>
+    </aside>
+  </div>
+</dialog>
+
+<dialog id="tokenDialog" class="klein-dialog" aria-label="API-Token">
+  <form method="dialog" id="tokenForm">
+    <h3>API-Token</h3>
+    <p>Der Server verlangt ein Token (<code>FLUX2_API_TOKEN</code>). Es bleibt nur in diesem Browser.</p>
+    <input type="password" id="tokenFeld" placeholder="Token" autocomplete="off">
+    <div class="knoepfe">
+      <button value="abbrechen" class="schlicht" type="button" id="tokenAbbruch">Abbrechen</button>
+      <button value="ok" class="primaer" id="tokenOk">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="bestaetigung" class="klein-dialog" aria-label="Bestätigung">
+  <form method="dialog">
+    <p id="bestaetigungText"></p>
+    <div class="knoepfe">
+      <button value="nein" class="schlicht">Abbrechen</button>
+      <button value="ja" class="primaer" id="bestaetigungJa">Ja</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="meldungen" class="meldungen" aria-live="polite"></div>
+
+<script src="/logik.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

@@ -18,11 +18,25 @@ diffusion-rs = { version = "0.1.20", optional = true }
 # Direkt für sd_set_log_callback: ohne gesetzten Callback schreibt sd.cpp
 # keine einzige Zeile — kein Backend, keine Warnung, kein Modelltyp.
 diffusion-rs-sys = { version = "0.1.20", optional = true }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sysinfo = "0.39"
+tiny_http = "0.12.0"
+ureq = "2"
 
 [[bin]]
 name = "flux2-rs"
 path = "src/main.rs"
 required-features = ["generate"]
+
+[[bin]]
+name = "flux2-api"
+path = "src/bin/flux2-api.rs"
+required-features = ["generate"]
+
+[[bin]]
+name = "metrics-report"
+path = "src/bin/metrics-report.rs"
 
 [[bin]]
 name = "matte"
@@ -31,3 +45,6 @@ path = "src/bin/matte.rs"
 [profile.release]
 opt-level = 3
 lto = true
+
+[dev-dependencies]
+tempfile = "3.27.0"

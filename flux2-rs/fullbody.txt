@@ -1,0 +1,24 @@
+# Kinderheim-Kinderliste für scripts/fullbody-batch.sh
+#
+# Format je Zeile, mit | getrennt:
+#   slug | Name | Beschreibung (deutsch, für dich) | Prompt (englisch, fürs Modell)
+#
+# Zehn Kinder aus einem Kinderheim, jedes vor einem anderen Hintergrund: Heimhaus,
+# Stadt, Gasse oder eine andere Lokation (Markt, Brunnen, Waldrand, Bäckerei, Brücke,
+# Innenhof). Der Prompt enthält bewusst keinen Stil-Zusatz — das übernimmt
+# FULLBODY_STYLE in fullbody.sh selbst; hier steht nur Figur und Szene, genau wie
+# fullbody.sh es erwartet (Stil wird beim Aufruf automatisch angehängt).
+#
+# Das Modell kennt die Namen nicht — nur die rechte Spalte erzeugt das Bild. Zeilen mit
+# # und leere Zeilen werden übersprungen.
+
+mira-aschengrau     | Mira Aschengrau     | Kleines Mädchen, steht vor dem alten Heimhaus | young orphan girl, tangled light brown hair, oversized hand-me-down wool sweater, bare feet, wistful expression, standing in front of a weathered timber orphanage house, cracked wooden door, ivy on the walls, overcast sky
+jonas-steinweg      | Jonas Steinweg      | Junge, läuft durch eine enge Stadtgasse | young orphan boy, patched trousers held up by rope, dirty cheeks, short messy dark hair, tired expression, standing in a narrow cobblestone alley between tall timber-framed houses, hanging laundry lines overhead, dim light
+lina-rabenfeder     | Lina Rabenfeder     | Mädchen mit Rabenhaar, steht auf dem Marktplatz der Stadt | young orphan girl, black windswept hair, worn grey dress, clutching a small cloth bundle, lonely expression, standing in a busy medieval town square market, market stalls and townsfolk in the background
+tobi-krummfuss      | Tobi Krummfuß       | Kleiner Junge mit Hinkefuß, sitzt auf den Stufen des Heimhauses | young orphan boy, slight limp, patched brown tunic, tousled ginger hair, quiet resigned expression, sitting on the stone steps of an old orphanage house, wooden sign hanging above the door
+sera-dachsloch      | Sera Dachsloch      | Mädchen, steht vor dem Brunnen am Stadtrand | young orphan girl, freckled face, faded blue pinafore dress, barefoot, pensive expression, standing beside an old stone well at the edge of town, moss-covered stones, distant rooftops
+finn-nebelgasse     | Finn Nebelgasse     | Junge, schleicht durch eine nebelige Gasse bei Nacht | young orphan boy, oversized grey cap, patched coat, wary cautious posture, walking through a foggy narrow alley at dusk, flickering lantern light on the walls
+elya-mondschein     | Elya Mondschein     | Mädchen mit silbrigem Haar, steht am Waldrand nahe dem Heim | young orphan girl, pale silvery-blonde hair, thin worn shawl, hopeful but sad expression, standing at the edge of a quiet forest near the orphanage, tall pine trees, soft morning light
+karl-ruesselbach    | Karl Rüsselbach     | Junge, hilft am Brotofen der Bäckerei | young orphan boy, flour-dusted apron over patched clothes, curious hungry expression, standing in front of a small timber bakery, warm glow from the oven doorway, loaves of bread in the window
+nessa-brueckental   | Nessa Brückental    | Mädchen, steht auf einer alten Steinbrücke | young orphan girl, patched green shawl, braided dark hair, distant melancholic gaze, standing on an old stone bridge over a narrow river, town rooftops visible behind her
+oskar-taubenschlag  | Oskar Taubenschlag  | Junge mit Taube auf der Schulter, steht im Innenhof des Heims | young orphan boy, worn suspenders, a small pigeon perched on his shoulder, faint timid smile, standing in the courtyard of the orphanage house, laundry hanging between buildings, cobblestone ground

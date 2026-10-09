@@ -126,8 +126,8 @@ nicht oder liefert Unsinn.
 
 | Preset | Diffusionsmodell | Encoder | cfg / Steps | Zugang |
 |---|---|---|---|---|
-| `klein-4b` (Default) | GGUF, distilliert | Qwen3-4B | 1.0 / 4 | offen |
-| `klein-9b` | GGUF, distilliert | Qwen3-8B | 1.0 / 4 | offen |
+| `klein-4b` | GGUF, distilliert | Qwen3-4B | 1.0 / 4 | offen |
+| `klein-9b` (Default) | GGUF, distilliert | Qwen3-8B | 1.0 / 4 | offen |
 | `klein-base-9b` | fp8-Safetensors, 9,5 GB | Qwen3-8B | 4.0 / 20 | gated |
 
 ```sh
@@ -190,10 +190,10 @@ weg. Wichtigste Optionen, `--help` zeigt alle:
 | `--no-despill` | – | Farbsaum in den Randpixeln stehen lassen |
 | `--quiet` / `--debug` | – | sd.cpp-Log aus bzw. mit DEBUG-Zeilen |
 | `--cutoff N` | `12` | Alpha ≤ N gilt als Hintergrund |
-| `--preset` | `klein-4b` | Modellsatz: `klein-4b`, `klein-9b`, `klein-base-9b` |
+| `--preset` | `klein-9b` | Modellsatz: `klein-4b`, `klein-9b`, `klein-base-9b` |
 | `--llm DATEI` | – | eigener Text-Encoder (Mistral-Fall, siehe oben) |
 | `--wtype TYP` | – | Gewichte beim Laden umwandeln (q8_0, q4_k, …) |
-| `--quant Q` | `Q5_K_M` | GGUF-Quantisierung für klein-4b |
+| `--quant Q` | `Q5_K_M` | GGUF-Quantisierung für klein-4b und klein-9b |
 | `--threads N` | P-Kerne | Default: `hw.perflevel0.physicalcpu` |
 | `--rebuild` / `--download-only` | – | neu bauen bzw. nur vorbereiten |
 
@@ -453,6 +453,300 @@ hat dieses Script nicht erzeugt und fasst die 450 Zeilen auch nicht automatisch 
 das beheben will, muss die Liste selbst bereinigen; `--style` ersetzt nur den Zusatz am
 Ende, nicht das, was schon in der jeweiligen Zeile steht.
 
+## Ganzkörper-Illustrationen: `scripts/fullbody.sh`
+
+Viertes Script nach demselben Prinzip, für eine stehende Figur von Kopf bis Fuß in einer
+Szene — anders als `token.sh` kein freizustellendes Asset, anders als `portrait.sh` nicht
+nur Kopf und Schultern. Wie `location.sh` und `portrait.sh` bleibt der Hintergrund
+erhalten, `--keep-bg` ist fest verdrahtet.
+
+```sh
+scripts/fullbody.sh "sad young orphan girl standing barefoot in a snowy medieval town \
+    street, worn patched blue-gray dress, messy dark brown hair, pale face, \
+    melancholic expression, timber-framed houses, small winter market, villagers in \
+    background, snow-covered cobblestones"
+
+scripts/fullbody.sh --seeds 3 --seed -1 "male mountain dwarf cleric, dark iron mail, \
+    warhammer, long braided beard, standing in a torch-lit stone hall"
+```
+
+Stil: hand-drawn anime-inspirierte Fantasy-Illustration, glatte weiche Schattierung,
+klare Linien, gedämpfte Farben, Storybook-Atmosphäre. Default-Größe 768×1536 (1:2,
+hochformatig statt quadratisch wie bei `token.sh`/`portrait.sh`). Der Dateiname entsteht
+wie bei den anderen Scripts aus dem Teil vor dem ersten Komma.
+
+Eigene Optionen: `-o/--out`, `--style`, `--style-ref`, `--models`, `-n/--dry-run`, `-h`.
+Alles Weitere geht unverändert an `generate-macos.sh`, z. B. `-W 1024 -H 2048` für ein
+größeres Bild.
+
+**Stilvorlage per Bild:** `--style-ref DATEI` reicht das Bild als Referenz (`-r`) durch und
+stellt dem Prompt eine Anweisung voran, nur Malweise, Palette, Licht und Tiefe zu
+übernehmen — Figur, Gesicht, Pose, Kleidung und Szene entstehen neu aus der Beschreibung.
+Das Bild ist ein Beispiel, keine Vorlage zum Nachbauen; ganz ohne Durchschlagen der
+Referenz geht es nicht, deshalb mehrere Seeds probieren und die Beschreibung möglichst
+konkret halten.
+
+```sh
+scripts/fullbody.sh --preset klein-9b --style-ref ../examples/Asandra.jpg --seeds 3 --seed -1 \
+    "female dwarf blacksmith, red braided hair, leather apron, carrying a heavy hammer, \
+    busy harbor town street"
+```
+
+Die drei Verneinungen aus dem ursprünglichen Entwurf (`no hyper-detailed noise`,
+`no single-strand wire hair effects`, `no dotted textures`) fehlen im Stil absichtlich —
+derselbe Grund wie bei den anderen drei Scripts: kein Negativ-Prompt bei `cfg_scale 1.0`.
+Positiv gelöst: `ultra-smooth rendering` statt der ersten, `soft solid hair rendering`
+statt der zweiten, `smooth flat clean textures` statt der dritten.
+
+## Kinderheim-Reihe: `fullbody.txt` und `scripts/fullbody-batch.sh`
+
+Dasselbe Prinzip wie bei den anderen drei Reihen, für `fullbody.sh` statt `token.sh`/
+`location.sh`/`portrait.sh`. `fullbody.txt` enthält zehn Kinder aus einem Kinderheim,
+jedes vor einem anderen Hintergrund (Heimhaus, Stadt, Gasse, Markt, Brunnen, Waldrand,
+Bäckerei, Brücke, Innenhof). Gleiches Format wie `charaktere.txt`:
+
+```
+slug | Name | Beschreibung (deutsch, für dich) | Prompt (englisch, fürs Modell)
+```
+
+Anders als bei `charaktere.txt`/`charaktere_portraits.txt` enthält der Prompt hier
+**keinen** Stil-Zusatz — `FULLBODY_STYLE` in `fullbody.sh` übernimmt das automatisch bei
+jedem Aufruf, die Zeile beschreibt nur Kind und Szene.
+
+```sh
+scripts/fullbody-batch.sh                        # alles, was noch fehlt
+scripts/fullbody-batch.sh --dry-run
+scripts/fullbody-batch.sh --from jonas-steinweg
+scripts/fullbody-batch.sh --only mira-aschengrau --seeds 3 --seed -1
+```
+
+| Option | Bedeutung |
+|---|---|
+| `--liste DATEI` | andere Kinderliste (Default: `<repo>/fullbody.txt`) |
+| `--out-dir DIR` | Zielverzeichnis (Default: `fullbody`) |
+| `--from SLUG` | erst ab diesem Eintrag beginnen |
+| `--only SLUG` | nur diesen einen Eintrag |
+| `--force` | auch vorhandene Illustrationen neu erzeugen |
+| `-n, --dry-run` | nur zeigen, was zu tun wäre |
+
+Alles Weitere geht an `fullbody.sh` und damit an `generate-macos.sh` durch. Fortsetzen,
+Abbruch-Aufräumen und Fehlerbehandlung funktionieren exakt wie bei `batch.sh` — siehe
+oben.
+
+## HTTP-API: `flux2-api`
+
+Alle vier Skriptfamilien (`token`, `location`, `portrait`, `fullbody`) als Dienst, ohne dass
+ein Shell-Skript gestartet wird: Stile, Prompt-Aufbau, Modell-Download, Generierung und
+Freistellen laufen in einem einzigen Rust-Prozess. Aufträge kommen als JSON, werden in eine
+Warteschlange gestellt und **einer nach dem anderen** abgearbeitet (ein Lauf braucht Minuten
+und viel RAM — zwei gleichzeitige würden sich nur ausbremsen).
+
+```sh
+# aus dem Projektstamm (neben flux2-rs/ und models/):
+./start.sh                             # baut nur bei Bedarf, startet auf 127.0.0.1:8080
+./start.sh --port 9000
+./start.sh --bind 0.0.0.0:8080 --token geheim   # im LAN; ohne Token verweigert
+./start.sh --build                     # immer bauen
+./start.sh --no-build                  # nie bauen, vorhandenes Binary starten
+./start.sh -n                    # nur zeigen, mit welchen Einstellungen
+```
+
+`start.sh` baut nur, wenn das Binary fehlt oder `src/`, `web/`, `Cargo.toml` oder `Cargo.lock` neuer
+sind als es — sonst startet die API sofort. Es setzt nur Umgebungsvariablen (mmap, Flash-Attention und VAE-Tiling aus, Threads =
+Performance-Kerne) und startet das Binary; bereits gesetzte Variablen gewinnen, also geht auch
+`MODELS_DIR=/ssd/modelle HF_TOKEN=hf_… ./start.sh`.
+
+**Hugging-Face-Token** (nur für gated Repos wie `klein-base-9b`): `start.sh` nimmt `HF_TOKEN` aus der
+Umgebung, sonst aus `hg-token.env` bzw. `hf-token.env` im Projektstamm oder aus `--hf-token-file`.
+Die Datei darf nur das Token enthalten oder `HF_TOKEN=…` (auch mit `export` und Anführungszeichen);
+sie wird gelesen, nicht ausgeführt, und das Token wird nie ausgegeben. `*token*.env` steht in
+`.gitignore`. Ohne das Script:
+`FLUX2_PROJECT=. FLUX2_DATA=api-daten ./target/release/flux2-api` nach `scripts/build.sh`.
+
+Konfiguration nur über Umgebungsvariablen:
+
+| Variable | Default | Bedeutung |
+|---|---|---|
+| `FLUX2_BIND` | `127.0.0.1:8080` | Adresse; ist sie nicht lokal, ist `FLUX2_API_TOKEN` Pflicht |
+| `FLUX2_API_TOKEN` | – | erwartetes `Authorization: Bearer …` (alle Routen außer `/health`) |
+| `FLUX2_DATA` | `api-daten` | Jobs, Uploads und die Ordner der Batch-Läufe |
+| `FLUX2_PROJECT` | `.` | Projektverzeichnis mit den Listen (`fullbody.txt`, …) |
+| `MODELS_DIR` | `<projekt>/../models`, sonst `<projekt>/models` | Modellgewichte, wie bei den Skripten |
+| `THREADS` | alle Kerne | Rechenthreads |
+| `MMAP` / `FLASH_ATTENTION` / `VAE_TILING` | `0` | wie bei `generate-macos.sh`; mmap auf Metal/CUDA aus lassen |
+| `HF_TOKEN` | – | Hugging-Face-Token für gated Repos (`klein-base-9b`) |
+| `LOG` | `1` | sd.cpp-Log: 0 aus, 1 INFO, 2 mit DEBUG |
+
+Fehlende Modelle lädt der Dienst beim ersten Job selbst herunter (fortsetzbar, mit
+`HF_TOKEN`), auch das ist nicht mehr an `generate-macos.sh` gebunden.
+
+### Routen
+
+| Route | Bedeutung |
+|---|---|
+| `GET /` | die Weboberfläche (siehe unten); auch `/app.js`, `/logik.js`, `/style.css` — ohne Token erreichbar |
+| `GET /health` | Lebenszeichen (ohne Token erreichbar) |
+| `GET /arten` | die vier Arten mit Größe, Steps und Standardliste |
+| `GET /listen/{art}` | Einträge der Standardliste (`slug`, `name`, `beschreibung`, `prompt`) samt vorhandenen Bildern |
+| `GET /bibliothek/{art}/{datei}` | Bild aus dem dauerhaften Ordner der Art (Ergebnis eines Listenlaufs) |
+| `POST /uploads` | Rohbild (PNG/JPEG/WebP) als Body → `{"id": …}` für `style_ref`/`refs` |
+| `POST /jobs` | Auftrag (JSON) → `202` mit dem Job; Fehler im Auftrag kommen sofort als `400` |
+| `POST /jobs?dry_run=1` | nur planen (wie `-n` der Skripte): Prompts, Seeds, Dateinamen — nichts wird eingereiht |
+| `GET /jobs` | alle Jobs, neueste zuerst (Kurzfassung) |
+| `GET /jobs/{id}` | ein Job mit allen Bildern; `?wait=30` wartet bis zum Ende (max. 60 s) |
+| `DELETE /jobs/{id}` | laufenden/wartenden Job abbrechen (`202`), beendeten entfernen (`204`) |
+| `GET /jobs/{id}/bilder/{datei}` | fertiges Bild (PNG) |
+| `GET /jobs/{id}/metrics` | Messdaten des Jobs: `zusammenfassung` (Spitzen, `aktuell` samt Skala, Werte je Phase, letzte Phase) und alle `eintraege`; `?kurz=1` lässt die `eintraege` weg (so fragt die Oberfläche); `404`, wenn es keine gibt |
+
+### Weboberfläche
+
+`./start.sh` und dann **http://127.0.0.1:8080/** im Browser. Die Seite kommt aus dem Binary selbst
+(eingebettet aus `web/`), läuft vom selben Ursprung wie die API und braucht weder Node noch einen
+Build-Schritt. Vier Bereiche:
+
+- **Erstellen** — Art wählen, Prompt, Varianten und Seed (zufällig oder fest), Referenzbild per
+  Drag & Drop (als Stilvorlage oder als Inhalt), unter „Weitere Einstellungen“ Modell, Größe,
+  Steps, cfg und mehr. **Vorschau** zeigt Prompts, Seeds und Dateinamen, ohne Rechenzeit zu
+  verbrauchen (`?dry_run=1`); Strg/Cmd+Enter startet.
+- **Jobs** — die Warteschlange mit Live-Status, Fortschrittsbalken und den Bildern, sobald sie
+  fertig sind. Laufende Jobs zeigen **Live-Balken** für Prozess-Speicher, belegten Systemspeicher,
+  Swap und **Auslagerung** (Swap-Rate in MB/s; rot ab 20 MB/s) samt aktueller Phase (grün → gelb →
+  rot nach Auslastung; Swap ab dem ersten MB gelb). Einen CPU-Balken gibt es nicht: bei GPU-Läufen
+  liegt die CPU beim Sampling bei ~0 %, beendete Jobs die Spitzenwerte des Laufs. Quelle ist `GET /jobs/{id}/metrics?kurz=1`,
+  siehe „Beobachtung“. Abbrechen, entfernen, **Mehr davon** (derselbe Auftrag mit neuen Seeds) und
+  **Auftrag übernehmen** (füllt das Formular zum Variieren).
+- **Galerie** — alle fertigen Bilder, filterbar nach Art; die Großansicht zeigt Seed, Größe,
+  Dauer und den vollständigen Prompt, blättert mit ←/→ und lädt das Bild herunter.
+- **Listen** — die Einträge von `charaktere.txt`, `orte.txt`, `charaktere_portraits.txt` und
+  `fullbody.txt` mit ihren vorhandenen Bildern; einzeln wählen oder „alle fehlenden“ starten.
+  Pro Eintrag entsteht ein eigener Job. Mit festem Seed (42) überspringt ein erneuter Lauf
+  Vorhandenes, mit zufälligen Seeds entstehen immer neue Bilder.
+
+Verlangt der Server ein Token, fragt die Seite danach und merkt es sich im Browser
+(`localStorage`); Bilder werden dann mit dem Token geholt statt über eine offene URL.
+
+**Ausprobieren ohne Modelle:** `./start.sh --demo` erzeugt statt echter Bilder bunte Platzhalter
+(grauer Grund, farbige Figur aus Seed und Prompt), lädt nichts herunter und braucht keine Gewichte.
+Warteschlange, Galerie, Listen und Freistellen der Tokens laufen genauso durch. Die Daten liegen
+getrennt in `api-daten-demo/`, damit Platzhalter nie als „schon vorhanden“ gelten und echte Bilder
+blockieren.
+
+Die reine Logik der Seite (Formular ⇄ Auftrag, Anzeigetexte, Galerie) steht in `web/logik.js` und
+wird ohne Browser getestet: `node --test web/logik.test.js`.
+
+### Auftrag
+
+```jsonc
+{
+  "kind": "fullbody",            // token | location | portrait | fullbody
+  "prompt": "female dwarf blacksmith, red braided hair, leather apron",
+  "seeds": 4,                    // 4 Varianten, fortlaufend ab "seed" (Default 42) …
+  // "seeds": [7, 42, 99],       // … oder genau diese Seeds
+  // "seed": -1,                 // würfelt einmal; der Seed steht danach im Ergebnis
+  "preset": "klein-9b",          // klein-4b | klein-9b (Default) | klein-base-9b
+  "style_ref": "3fa9c1d2e4b50617", // Upload-ID: Bild nur als Stilvorlage (--style-ref)
+  "width": 768, "height": 1536,  // durch 16 teilbar, 256…2048
+  "steps": 8, "cfg": 1.0, "guidance": 3.5
+}
+```
+
+Weitere Felder: `name` (Dateiname-Stamm), `quant`, `wtype`, `large` (Orte: 1536×768),
+`style`, `pose` (nur Tokens), `refs` (Upload-IDs, als **Szene**: die Figur wird in dieses Bild gesetzt), `ref_max_px` (siehe unten), `freistellen`,
+`key`, `out_w`/`out_h`. Unbekannte Felder sind ein Fehler, damit ein Tippfehler nicht still
+ignoriert wird. Pro Auftrag sind höchstens 64 Bilder erlaubt.
+
+**Batch aus einer Liste** statt eines Prompts — wie `batch.sh` & Co.:
+
+```jsonc
+{ "kind": "fullbody", "liste": { "from": "jonas-steinweg", "only": null, "force": false }, "seeds": 2 }
+```
+
+`liste: {}` arbeitet alles ab, was noch fehlt; vorhandene Bilder werden übersprungen, `force`
+erzeugt sie neu. Listenbilder landen in `FLUX2_DATA/<ordner>/` (`tokens`, `locations`,
+`portraits`, `fullbody`) und heißen wie ihr `slug`; Einzelaufträge in `jobs/<id>/bilder/`.
+
+### Beispiel
+
+```sh
+# Stilvorlage hochladen
+ID=$(curl -s --data-binary @examples/Asandra.jpg localhost:8080/uploads | jq -r .id)
+
+# Vier Varianten in Auftrag geben …
+JOB=$(curl -s localhost:8080/jobs -d "{
+  \"kind\": \"fullbody\", \"seeds\": 4, \"seed\": -1, \"style_ref\": \"$ID\",
+  \"prompt\": \"female dwarf blacksmith, red braided hair, leather apron, busy harbor town\"
+}" | jq -r .id)
+
+# … warten und die Bilder ansehen
+curl -s "localhost:8080/jobs/$JOB?wait=60" | jq '{status, meldung, bilder: [.bilder[] | {seed, status, url}]}'
+curl -s localhost:8080/jobs/$JOB/bilder/female-dwarf-blacksmith-s123456789.png -o dwarf.png
+```
+
+### Referenzbilder: Stil oder Szene
+
+- `style_ref` — das Bild liefert nur Malweise, Palette und Licht; Figur und Szene entstehen neu.
+- `refs` — das Bild ist die **Szene**: der Prompt bekommt die Anweisung vorangestellt, Ort,
+  Architektur, Perspektive, Licht und Farben beizubehalten und die Figur hineinzusetzen. Bei
+  `fullbody` entfällt dafür der Umgebungsteil des Stils (unscharfer Hintergrund, kühle Palette,
+  "filling the frame"), weil er dem Bild widerspräche.
+- Im Prompt nur die **Figur** beschreiben. Wer zusätzlich einen Hintergrund ("medieval market")
+  oder den ganzen Stiltext hineinschreibt, arbeitet gegen die Referenz — das Modell folgt dem
+  Text meist stärker als dem Bild. `?dry_run=1` zeigt den fertigen Prompt.
+- **Referenzgröße `ref_max_px`** (Auftrag) bzw. `REF_MAX_PX` (Server-Vorgabe): Obergrenze für die lange Kante
+  der Referenzen. Das ist der größte Hebel für die Laufzeit, denn die Referenz wird zu Tokens im
+  Transformer und die Attention wächst quadratisch mit der Tokenzahl. Ohne Angabe bringt sd.cpp
+  jede Referenz auf **genau 1 MP** (auch aufwärts). Mit Angabe verkleinert der Ablauf die Bilder
+  selbst (Seitenverhältnis bleibt, nie hochskaliert, Kanten auf Vielfache von 16 abgerundet,
+  1122×1402 bei 512 → 400×512) und schaltet sd.cpps Automatik ab. In der Oberfläche unter
+  „Weitere Einstellungen → Referenzgröße“. Der Wert steht im `kontext` der Metriken und im
+  Report („Obergrenze“) — so lassen sich Läufe vergleichen.
+
+### Beobachtung: `metrics.jsonl`
+
+Jeder Job schreibt nach `<FLUX2_DATA>/jobs/<id>/metrics.jsonl` – eine JSON-Zeile pro Ereignis, jede
+sofort auf die Platte (`sync_data`), damit die letzte Zeile vor einem eingefrorenen Rechner
+erhalten bleibt:
+
+| `art` | Inhalt |
+|---|---|
+| `kontext` | Preset, Gewichtstyp, Größe, Schritte, **Pixelmaße der Referenzen**, `mmap`/Flash-Attention/VAE-Tiling, Threads |
+| `phase` | Beginn von `referenz`, `erzeugen`, `freistellen`, `bild_fertig` |
+| `stufe` | von sd.cpp gemeldete Dauern: `laden`, `text_encoder`, `vae_encode` (Referenz!), `sampling`, `vae_decode` |
+| `probe` | alle `METRICS_MS` (Standard 1000): RSS des Prozesses, verfügbarer Systemspeicher, Swap, CPU in % über alle Kerne, dazu die kumulierten Swap-Ein-/Auslagerungen (`swap_ein_mb`/`swap_aus_mb`, nur macOS über `vm_stat`; aus zwei Proben ergibt sich die Rate) |
+
+Abstand einstellen oder ausschalten: `METRICS_MS=500 ./start.sh`, `METRICS_MS=0` = aus. Auswerten:
+
+```sh
+curl localhost:8080/jobs/<id>/metrics | jq .zusammenfassung
+./target/release/metrics-report api-daten/jobs/<id>/metrics.jsonl
+```
+
+`metrics-report` und `zusammenfassung` schlüsseln auf: je **Phase** (`erzeugen` …) und je **sd.cpp-Stufe**
+(`laden`, `text_encoder`, `vae_encode`, `sampling`, `vae_decode` — Dauer, Speicherspitze, ausgelagerter
+Swap im jeweiligen Zeitfenster). Phasen ohne Probe zeigen „–“ statt 0. Die Swap-Zeile nennt die Summe
+im Lauf und die Spitzenrate; **hohe Auslagerung während `sampling` bei konstantem Swap-Stand ist
+Thrashing**. Läufe aus älteren Versionen haben keine Zähler und zeigen dort 0.
+
+Wer ein Einfrieren untersucht, schaut zuerst auf *Ende in Phase …*, den wenigsten freien Speicher
+und den Swap-Anstieg. Grenzen: die Metal-GPU-Belegung ist ohne private APIs nicht lesbar (der
+Systemspeicher zeigt sie indirekt, weil sich CPU und GPU auf Apple Silicon den Speicher teilen),
+und friert der ganze Rechner ein, stehen auch die Proben still – die letzte Zeile ist dann das
+Lebenszeichen.
+
+### Verhalten, das man kennen sollte
+
+- **Mehrere Seeds laden die Gewichte jedes Mal neu**: `diffusion-rs` baut den Modellkontext
+  bei jedem Bild neu auf — genauso wie die Skripte, die pro Seed einen Prozess starten.
+- **Abbruch greift nach dem aktuellen Bild.** `stable-diffusion.cpp` blockiert, bis ein Bild
+  fertig ist; es lässt sich nicht mittendrin stoppen.
+- **Ein fehlgeschlagenes Bild stoppt die übrigen nicht**; der Job endet dann als
+  `fehlgeschlagen`, die fertigen Bilder bleiben erhalten.
+- **Neustart:** wartende Jobs laufen weiter, ein gerade laufender gilt als abgebrochen.
+- Bei `klein-base-9b` gelten ohne Angabe 20 Steps, cfg 4.0 und `wtype: q8_0` (die Skripte
+  übergeben immer ihre 8 Steps, was für das nicht destillierte Modell zu wenig ist).
+- Die Skripte bleiben unverändert nutzbar; ihre Stiltexte stehen in `src/kind.rs` ein
+  zweites Mal. Wer einen Stil ändert, muss beide Stellen anfassen.
+
 ## Ausführen
 
 ```sh
@@ -473,6 +767,7 @@ Alle Parameter sind Umgebungsvariablen — es gibt keinen Argument-Parser:
 | `INIT` | – | img2img-Vorlage |
 | `STRENGTH` | `0.75` | nur mit `INIT`: 0.0 = Vorlage bleibt, 1.0 = alles neu |
 | `REF_BG` | `ffffff` | Fläche, auf die transparente Referenzbilder gelegt werden |
+| `REF_MAX_PX` | – (aus) | Obergrenze für die lange Kante der Referenzbilder in Pixeln (64–2048); ein Auftrag überschreibt sie mit `ref_max_px` |
 | `MODELS_DIR` | `/workspace/models` | Wurzel für die Default-Modellpfade |
 | `DIT` | Q3_K_M-Pfad | Diffusion-Transformer (GGUF) |
 | `LLM` | Q4_K_M-Pfad | Text-Encoder (GGUF) |

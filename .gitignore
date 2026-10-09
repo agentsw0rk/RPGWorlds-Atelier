@@ -18,3 +18,7 @@ target/
 *.secret
 .env
 .DS_Store
+
+# Zustand der HTTP-API (Jobs, Uploads, erzeugte Bilder)
+api-daten/
+api-daten-demo/

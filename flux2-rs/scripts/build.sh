@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Baut die beiden Binaries — sonst nichts. Keine Modelle, keine Generierung.
+# Baut die Binaries (flux2-rs, flux2-api, matte) — sonst nichts. Keine Modelle, keine Generierung.
 #
 #   scripts/build.sh              # Release bauen (inkrementell)
 #   scripts/build.sh --tests      # vorher die Unit-Tests laufen lassen
@@ -60,7 +60,7 @@ elapsed=$(( SECONDS - started ))
 
 say "Fertig"
 printf 'Dauer: %d:%02d min\n' $(( elapsed / 60 )) $(( elapsed % 60 ))
-for bin in flux2-rs matte; do
+for bin in flux2-rs flux2-api matte; do
     pfad="$repo_root/target/release/$bin"
     if [ -x "$pfad" ]; then
         echo "  $pfad"

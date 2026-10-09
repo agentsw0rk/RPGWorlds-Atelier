@@ -47,7 +47,7 @@ vae_tiling=0          # 32 GB brauchen kein gekacheltes VAE-Decoding
 # an, um im Container Speicher zu sparen — auf einem 32-GB-Mac ist das unnötig
 # und ein möglicher Grund für kaputte (graue) Bilder.
 flash_attention=0
-preset=klein-4b       # Modellsatz, siehe unten
+preset=klein-9b       # Modellsatz, siehe unten
 wtype=""             # Gewichte beim Laden umwandeln, z. B. q8_0
 llm_datei=""         # eigener Text-Encoder statt des zum Preset passenden
 cfg_scale=1.0        # wird vom Modellsatz überschrieben, wenn nicht gesetzt
@@ -141,7 +141,7 @@ Qualität und Diagnose:
       --debug           zusätzlich DEBUG-Zeilen zeigen
 
 Modelle und Build:
-      --preset NAME     Modellsatz (Default: klein-4b). Legt Diffusionsmodell und
+      --preset NAME     Modellsatz (Default: klein-9b). Legt Diffusionsmodell und
                         passenden Text-Encoder zusammen fest:
                         klein-4b      distilliert, GGUF, Qwen3-4B, cfg 1.0, 4 Steps
                         klein-9b      distilliert, GGUF, Qwen3-8B, cfg 1.0, 4 Steps
@@ -154,7 +154,7 @@ Modelle und Build:
                         q5_k, q4_k, q3_k. sd.cpp rechnet fp8 beim Einlesen auf
                         f16 hoch — aus 9,5 GB werden sonst rund 19 GB im
                         Speicher. Bei klein-base-9b ist q8_0 voreingestellt.
-      --quant Q         GGUF-Quantisierung für klein-4b, z. B. Q4_K_M, Q8_0 (Default: Q5_K_M)
+      --quant Q         GGUF-Quantisierung für klein-4b und klein-9b, z. B. Q4_K_M, Q8_0 (Default: Q5_K_M)
       --models DIR      Modellverzeichnis (Default: <projekt>/models neben dem Repo,
                         sonst <repo>/models)
       --threads N       Threads (Default: Performance-Kerne des Rechners)
@@ -310,8 +310,8 @@ hf="https://huggingface.co"
 # Encoder mit (text_encoder/ ist dort 16,4 GB in bf16), der 4B einen 4B großen.
 # Mit dem falschen Encoder lädt sd.cpp entweder gar nicht oder liefert Unsinn.
 #
-# klein-4b:      distilliert, GGUF, cfg 1.0 und wenige Steps. Der Normalfall.
-# klein-9b:      distilliert, GGUF, größeres Modell — gleiche Bedienung, mehr
+# klein-4b:      distilliert, GGUF, cfg 1.0 und wenige Steps. Kleiner und schneller.
+# klein-9b:      Default. Distilliert, GGUF, größeres Modell — gleiche Bedienung, mehr
 #                Qualität und mehr Rechenzeit.
 # klein-base-9b: nicht distilliert, eine fp8-Safetensors-Datei von 9,5 GB.
 #                Braucht cfg ~4.0 und ~20 Steps, sonst kommt Matsch heraus.
